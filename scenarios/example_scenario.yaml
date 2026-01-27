@@ -1,0 +1,9 @@
+scenario:
+  name: dummy_iot_attack
+  description: Minimal example scenario for IoT traffic generation
+
+runs:
+  - id: run_001
+    type: attack
+    label: dummy_attack
+    script: scripts/dummy_attack.sh

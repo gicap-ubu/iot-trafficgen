@@ -1,0 +1,22 @@
+{
+  "tool": "iottrafficgen",
+  "version": "0.1.0",
+  "scenario": {
+    "name": "dummy_iot_attack",
+    "description": "Minimal example scenario for IoT traffic generation"
+  },
+  "runs": [
+    {
+      "id": "run_001",
+      "type": "attack",
+      "label": "dummy_attack",
+      "script": "scripts/dummy_attack.sh",
+      "start_time_utc": "2026-01-27T10:06:15.886514",
+      "end_time_utc": "2026-01-27T10:06:19.909802",
+      "stdout": "[dummy_attack] Starting dummy IoT traffic generation\n[dummy_attack] Generating packets...\n[dummy_attack] Dummy traffic finished successfully\n",
+      "stderr": "",
+      "returncode": 0
+    }
+  ],
+  "generated_at_utc": "2026-01-27T10:06:15.886363"
+}
