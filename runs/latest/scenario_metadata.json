@@ -2,21 +2,21 @@
   "tool": "iottrafficgen",
   "version": "0.1.0",
   "scenario": {
-    "name": "dummy_iot_attack",
-    "description": "Minimal example scenario for IoT traffic generation"
+    "name": "NMAP_SYN_P1_1000_T3"
   },
   "runs": [
     {
-      "id": "run_001",
-      "type": "attack",
-      "label": "dummy_attack",
-      "script": "scripts/dummy_attack.sh",
-      "start_time_utc": "2026-01-27T10:06:15.886514",
-      "end_time_utc": "2026-01-27T10:06:19.909802",
-      "stdout": "[dummy_attack] Starting dummy IoT traffic generation\n[dummy_attack] Generating packets...\n[dummy_attack] Dummy traffic finished successfully\n",
+      "id": "NMAP_SYN_P1_1000_T3",
+      "type": null,
+      "label": null,
+      "script": "scripts/attacks/nmap/nmap_scan.sh",
+      "profile": "profiles/nmap/SYN_P1_1000_T3.yaml",
+      "start_time_utc": "2026-01-28T12:29:57.823468",
+      "end_time_utc": "2026-01-28T12:29:57.866879",
+      "stdout": "[nmap_scan] TARGET=127.0.0.1\n[nmap_scan] TOOL_ARGS=-sT -p 1-1000 -T3\n[nmap_scan] OUT_DIR=runs/NMAP_SYN_P1_1000_T3/nmap\n[nmap_scan] CMD: /opt/homebrew/bin/nmap -sT -p 1-1000 -T3 -oA runs/NMAP_SYN_P1_1000_T3/nmap/scan 127.0.0.1\nStarting Nmap 7.98 ( https://nmap.org ) at 2026-01-28 13:29 +0100\nNmap scan report for localhost (127.0.0.1)\nHost is up (0.000024s latency).\nAll 1000 scanned ports on localhost (127.0.0.1) are in ignored states.\nNot shown: 1000 closed tcp ports (conn-refused)\n\nNmap done: 1 IP address (1 host up) scanned in 0.03 seconds\n[nmap_scan] Completed\n",
       "stderr": "",
       "returncode": 0
     }
   ],
-  "generated_at_utc": "2026-01-27T10:06:15.886363"
+  "generated_at_utc": "2026-01-28T12:29:57.823065"
 }

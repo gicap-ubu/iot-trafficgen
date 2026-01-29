@@ -1,0 +1,10 @@
+scenario:
+  name: test
+
+runs:
+  - id: test_01
+    script: scripts/attacks/nmap/nmap_scan.sh
+    env:
+      TARGET_IP: "127.0.0.1"
+      TOOL_ARGS: "-sT -p 80 -T3"
+      RUN_ID: "test_01"
