@@ -1,0 +1,5 @@
+profile:
+  tool: nmap
+  name: NMAP_SYN_HUB_P1_1000_T3
+  description: "SYN scan HUB ports 1-1000, timing T3"
+  tool_args: "-sS -p 1-1000 -T3"

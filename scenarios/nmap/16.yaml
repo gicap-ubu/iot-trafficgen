@@ -1,0 +1,16 @@
+scenario:
+  name: "NMAP_SV_SCADA_P1_1000_T3"
+  description: "Service version SCADA ports 1-1000"
+  markers:
+    enabled: true
+    host: "192.168.8.121"
+    port: 55556
+
+runs:
+  - id: nmap_16
+    type: attack
+    label: "NMAP_SV_SCADA_P1_1000_T3"
+    script: ../../scripts/attacks/nmap/nmap_scan.sh
+    profile: ../../profiles/nmap/profile_16.yaml
+    env:
+      TARGET_IP: "192.168.8.122"

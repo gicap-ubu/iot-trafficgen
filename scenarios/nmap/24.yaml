@@ -1,0 +1,16 @@
+scenario:
+  name: "NMAP_SLOW_SYN_SCADA_DELAY100MS_P1_1000"
+  description: "Slow SYN scan SCADA with 100ms delay"
+  markers:
+    enabled: true
+    host: "192.168.8.121"
+    port: 55556
+
+runs:
+  - id: nmap_24
+    type: attack
+    label: "NMAP_SLOW_SYN_SCADA_DELAY100MS_P1_1000"
+    script: ../../scripts/attacks/nmap/nmap_scan.sh
+    profile: ../../profiles/nmap/profile_24.yaml
+    env:
+      TARGET_IP: "192.168.8.122"

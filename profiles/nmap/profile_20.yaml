@@ -1,0 +1,5 @@
+profile:
+  tool: nmap
+  name: NMAP_FRAG_SYN_SCADA_P1_2000_T2
+  description: "Fragmented SYN scan SCADA ports 1-2000, timing T2"
+  tool_args: "-sS -f -p 1-2000 -T2"

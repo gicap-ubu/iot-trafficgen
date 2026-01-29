@@ -1,0 +1,5 @@
+profile:
+  tool: nmap
+  name: NMAP_SV_OS_SCADA_T3
+  description: "Service version + OS detection SCADA, timing T3"
+  tool_args: "-sV -O -T3"

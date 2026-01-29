@@ -1,15 +1,48 @@
-# Python virtual environments
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Entornos virtuales
+venv/
+env/
+ENV/
 trafficgenvenv/
 
-# Python build artifacts
-*.egg-info/
-dist/
-build/
-__pycache__/
-*.pyc
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
 
-# Runtime outputs
+# Outputs de iottrafficgen
 runs/
+.iottrafficgen/
+*.pcap
+*.log
+
+# Tests
+.pytest_cache/
+.coverage
+htmlcov/
 
 # OS
 .DS_Store
+Thumbs.db

@@ -1,0 +1,16 @@
+scenario:
+  name: "NMAP_SYN_SCADA_P1_2000_DELAY20MS"
+  description: "SYN scan SCADA with 20ms delay between probes"
+  markers:
+    enabled: true
+    host: "192.168.8.121"
+    port: 55556
+
+runs:
+  - id: nmap_10
+    type: attack
+    label: "NMAP_SYN_SCADA_P1_2000_DELAY20MS"
+    script: ../../scripts/attacks/nmap/nmap_scan.sh
+    profile: ../../profiles/nmap/profile_10.yaml
+    env:
+      TARGET_IP: "192.168.8.122"

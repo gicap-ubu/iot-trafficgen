@@ -1,0 +1,5 @@
+profile:
+  tool: nmap
+  name: NMAP_SV_OS_SCADA_P1_2000_T3
+  description: "Service version + OS detection SCADA ports 1-2000"
+  tool_args: "-sV -O -p 1-2000 -T3"

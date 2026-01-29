@@ -1,0 +1,16 @@
+scenario:
+  name: "NMAP_SV_OS_SCADA_T2"
+  description: "Service version + OS detection SCADA, timing T2 (slower)"
+  markers:
+    enabled: true
+    host: "192.168.8.121"
+    port: 55556
+
+runs:
+  - id: nmap_15
+    type: attack
+    label: "NMAP_SV_OS_SCADA_T2"
+    script: ../../scripts/attacks/nmap/nmap_scan.sh
+    profile: ../../profiles/nmap/profile_15.yaml
+    env:
+      TARGET_IP: "192.168.8.122"

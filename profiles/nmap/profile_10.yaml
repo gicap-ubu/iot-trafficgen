@@ -1,0 +1,5 @@
+profile:
+  tool: nmap
+  name: NMAP_SYN_SCADA_P1_2000_DELAY20MS
+  description: "SYN scan SCADA with 20ms delay between probes"
+  tool_args: "-sS -p 1-2000 --scan-delay 20ms"

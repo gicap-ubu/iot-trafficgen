@@ -1,0 +1,5 @@
+profile:
+  tool: nmap
+  name: NMAP_SV_SCADA_INTENSITY7_T3
+  description: "Service version SCADA with intensity 7 (aggressive)"
+  tool_args: "-sV --version-intensity 7 -T3"

@@ -1,0 +1,5 @@
+profile:
+  tool: nmap
+  name: NMAP_MTU24_SYN_SCADA_P1_1000
+  description: "SYN scan SCADA with MTU 24"
+  tool_args: "-sS --mtu 24 -p 1-1000"

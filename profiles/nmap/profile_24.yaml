@@ -1,0 +1,5 @@
+profile:
+  tool: nmap
+  name: NMAP_SLOW_SYN_SCADA_DELAY100MS_P1_1000
+  description: "Slow SYN scan SCADA with 100ms delay"
+  tool_args: "-sS --scan-delay 100ms -p 1-1000"

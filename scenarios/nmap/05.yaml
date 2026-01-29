@@ -1,0 +1,16 @@
+scenario:
+  name: "NMAP_SYN_SCADA_P1_2000_T2"
+  description: "SYN scan SCADA ports 1-2000, timing T2 (slower)"
+  markers:
+    enabled: true
+    host: "192.168.8.121"
+    port: 55556
+
+runs:
+  - id: nmap_05
+    type: attack
+    label: "NMAP_SYN_SCADA_P1_2000_T2"
+    script: ../../scripts/attacks/nmap/nmap_scan.sh
+    profile: ../../profiles/nmap/profile_05.yaml
+    env:
+      TARGET_IP: "192.168.8.122"

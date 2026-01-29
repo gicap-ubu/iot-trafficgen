@@ -1,0 +1,5 @@
+profile:
+  tool: nmap
+  name: NMAP_SYN_SCADA_P1_3000_T3_RETRIES1
+  description: "SYN scan SCADA ports 1-3000 with max retries 1"
+  tool_args: "-sS -p 1-3000 -T3 --max-retries 1"

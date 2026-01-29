@@ -1,0 +1,5 @@
+profile:
+  tool: nmap
+  name: NMAP_SYN_SCADA_P1_2000_T4
+  description: "SYN scan SCADA ports 1-2000, timing T4 (faster)"
+  tool_args: "-sS -p 1-2000 -T4"

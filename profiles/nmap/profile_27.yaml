@@ -1,0 +1,5 @@
+profile:
+  tool: nmap
+  name: NMAP_SYN_HUB_TOP1000_T3
+  description: "SYN scan HUB top 1000 ports"
+  tool_args: "-sS --top-ports 1000 -T3"

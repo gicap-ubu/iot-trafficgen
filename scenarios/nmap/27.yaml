@@ -1,0 +1,16 @@
+scenario:
+  name: "NMAP_SYN_HUB_TOP1000_T3"
+  description: "SYN scan HUB top 1000 ports"
+  markers:
+    enabled: true
+    host: "192.168.8.121"
+    port: 55556
+
+runs:
+  - id: nmap_27
+    type: attack
+    label: "NMAP_SYN_HUB_TOP1000_T3"
+    script: ../../scripts/attacks/nmap/nmap_scan.sh
+    profile: ../../profiles/nmap/profile_27.yaml
+    env:
+      TARGET_IP: "192.168.8.121"

@@ -1,0 +1,5 @@
+profile:
+  tool: nmap
+  name: NMAP_SV_SCADA_INTENSITY3_T3
+  description: "Service version SCADA with intensity 3"
+  tool_args: "-sV --version-intensity 3 -T3"
