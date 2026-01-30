@@ -1,0 +1,5 @@
+profile:
+  tool: hping3
+  name: ICMP_FLOOD_LOW_RATE_STD
+  description: "ICMP flood low rate (u1000), standard payload (120B)"
+  tool_args: "-d 120 -r -i u1000"

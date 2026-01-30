@@ -1,0 +1,21 @@
+# CONFIGURATION REQUIRED:
+# Update TARGET_IP and TARGET_PORT with your target server
+# Original dataset used: TARGET_IP=192.168.8.122, TARGET_PORT=80
+
+scenario:
+  name: "SYN_FLOOD_HIGH_RATE_STD"
+  description: "SYN flood high rate (u10000), standard payload (120B)"
+  markers:
+    enabled: true
+    host: "MARKER_HOST_PLACEHOLDER"
+    port: 55556
+
+runs:
+  - id: syn_flood_01
+    type: attack
+    label: "SYN_FLOOD_HIGH_RATE_STD"
+    script: ../../scripts/attacks/denial_of_service/SYN_flood.sh
+    profile: ../../profiles/denial_of_service/syn_profile_01.yaml
+    env:
+      TARGET_IP: "TARGET_IP_PLACEHOLDER"
+      TARGET_PORT: "80"

@@ -1,0 +1,5 @@
+profile:
+  tool: sqlmap
+  name: SQLI_P1_BOOLEAN_SLOW
+  description: "SQL injection with Boolean-based technique, slow delay (0.5s), level 2"
+  tool_args: "--delay 0.5 --level 2 --risk 1 --technique B --fresh-queries --flush-session"

@@ -1,0 +1,6 @@
+profile:
+  tool: paho-mqtt
+  name: MQTT_INJ_SLOW
+  description: "MQTT false data injection, slow rate (1.0s delay, 0.2s jitter)"
+  base_delay_s: 1.0
+  jitter_s: 0.2

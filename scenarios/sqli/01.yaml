@@ -1,0 +1,21 @@
+# CONFIGURATION REQUIRED:
+# Update TARGET_URL with your vulnerable web application URL
+# Original dataset used: http://192.168.8.122/index.php?order=1&user=1&role=1&item=1&price=10&cat=2&ref=88
+
+scenario:
+  name: "SQLI_P1_BOOLEAN_SLOW"
+  description: "SQL injection with Boolean-based technique, slow delay (0.5s), level 2"
+  markers:
+    enabled: true
+    host: "MARKER_HOST_PLACEHOLDER"
+    port: 55556
+
+runs:
+  - id: sqli_01
+    type: attack
+    label: "SQLI_P1_BOOLEAN_SLOW"
+    script: ../../scripts/attacks/sqli/sql_injection.sh
+    profile: ../../profiles/sqli/profile_01.yaml
+    env:
+      TARGET_URL: "TARGET_URL_PLACEHOLDER"
+      SQLMAP_OUTPUT_DIR: "runs/sqli_01/sqlmap_output"

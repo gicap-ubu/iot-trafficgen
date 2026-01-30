@@ -1,0 +1,5 @@
+profile:
+  tool: hydra
+  name: SSH_BF_RECOVERY
+  description: "SSH brute force with 2 threads, 300s timeout, recovery mode"
+  tool_args: "-t 2 -w 8 -W 0 -I"

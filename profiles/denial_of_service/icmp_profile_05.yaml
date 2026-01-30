@@ -1,0 +1,5 @@
+profile:
+  tool: hping3
+  name: ICMP_FLOOD_VHIGH_RATE_SMALL
+  description: "ICMP flood very high rate (u20000), small payload (60B)"
+  tool_args: "-d 60 -r -i u20000"

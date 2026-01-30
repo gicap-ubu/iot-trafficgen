@@ -1,0 +1,5 @@
+profile:
+  tool: sqlmap
+  name: SQLI_P6_ALL_TECHNIQUES
+  description: "SQL injection with all techniques (BEUT), level 5, risk 3"
+  tool_args: "--delay 0.1 --level 5 --risk 3 --technique BEUT --fresh-queries --flush-session"

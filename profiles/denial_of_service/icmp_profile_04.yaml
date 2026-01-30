@@ -1,0 +1,5 @@
+profile:
+  tool: hping3
+  name: ICMP_FLOOD_MED_RATE_LARGE
+  description: "ICMP flood medium rate (u5000), large payload (300B)"
+  tool_args: "-d 300 -r -i u5000"

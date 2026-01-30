@@ -1,0 +1,20 @@
+# CONFIGURATION REQUIRED:
+# Update TARGET_IP with your target server
+# Original dataset used: TARGET_IP=192.168.8.122
+
+scenario:
+  name: "ICMP_FLOOD_MED_RATE_STD"
+  description: "ICMP flood medium rate (u5000), standard payload (120B)"
+  markers:
+    enabled: true
+    host: "MARKER_HOST_PLACEHOLDER"
+    port: 55556
+
+runs:
+  - id: icmp_flood_02
+    type: attack
+    label: "ICMP_FLOOD_MED_RATE_STD"
+    script: ../../scripts/attacks/denial_of_service/ICMP_flood.sh
+    profile: ../../profiles/denial_of_service/icmp_profile_02.yaml
+    env:
+      TARGET_IP: "TARGET_IP_PLACEHOLDER"

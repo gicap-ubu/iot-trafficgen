@@ -1,0 +1,7 @@
+profile:
+  tool: paho-mqtt
+  name: MQTT_FLOOD_LOW_QOS2
+  description: "MQTT flood low rate (100pps), QoS 2, payload 128B"
+  mqtt_rate: 100
+  mqtt_qos: 2
+  mqtt_payload_size: 128

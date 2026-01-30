@@ -1,0 +1,5 @@
+profile:
+  tool: hydra
+  name: SSH_BF_HIGH
+  description: "SSH brute force with 8 threads, 300s timeout, high intensity"
+  tool_args: "-t 8 -w 6 -W 0"

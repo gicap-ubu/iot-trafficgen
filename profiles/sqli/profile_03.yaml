@@ -1,0 +1,5 @@
+profile:
+  tool: sqlmap
+  name: SQLI_P3_ERROR_BASED
+  description: "SQL injection with Error-based technique, level 3, risk 2"
+  tool_args: "--delay 0.1 --level 3 --risk 2 --technique E --fresh-queries --flush-session"

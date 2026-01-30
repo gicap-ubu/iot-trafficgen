@@ -1,0 +1,5 @@
+profile:
+  tool: arpspoof
+  name: ARP_SPOOFING_MITM
+  description: "ARP spoofing bidirectional MITM attack between two targets"
+  duration_seconds: 300

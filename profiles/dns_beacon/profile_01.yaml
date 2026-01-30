@@ -1,0 +1,7 @@
+profile:
+  tool: dnspython
+  name: DNS_BEACONING_HIGH_ENTROPY
+  description: "DNS beaconing with high-entropy labels (3.5s interval, 20% jitter, 55 char labels)"
+  interval_s: 3.5
+  jitter_frac: 0.20
+  label_len: 55

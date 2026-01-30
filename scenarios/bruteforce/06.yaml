@@ -1,0 +1,25 @@
+# CONFIGURATION REQUIRED:
+# Update TARGET_IP with your SSH server IP address
+# Update USERNAME with the target username
+# Update WORDLIST path if using a different dictionary
+# Original dataset used: TARGET_IP=192.168.8.122, USERNAME=admin_ubu
+
+scenario:
+  name: "SSH_BF_RECOVERY"
+  description: "SSH brute force with 2 threads, 300s timeout, recovery mode"
+  markers:
+    enabled: true
+    host: "MARKER_HOST_PLACEHOLDER"
+    port: 55556
+
+runs:
+  - id: ssh_bf_06
+    type: attack
+    label: "SSH_BF_RECOVERY"
+    script: ../../scripts/attacks/bruteforce/ssh_bruteforce.sh
+    profile: ../../profiles/bruteforce/profile_06.yaml
+    env:
+      TARGET_IP: "TARGET_IP_PLACEHOLDER"
+      TARGET_PORT: "22"
+      USERNAME: "USERNAME_PLACEHOLDER"
+      WORDLIST: "example_passwd.txt"

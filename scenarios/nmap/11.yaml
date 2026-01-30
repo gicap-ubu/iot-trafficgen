@@ -1,9 +1,13 @@
+# CONFIGURATION REQUIRED:
+# Update TARGET_IP with your SCADA device IP address
+# Original dataset used: 192.168.8.122
+
 scenario:
   name: "NMAP_SV_OS_SCADA_T3"
   description: "Service version + OS detection SCADA, timing T3"
   markers:
     enabled: true
-    host: "192.168.8.121"
+    host: "MARKER_HOST_PLACEHOLDER"
     port: 55556
 
 runs:
@@ -13,4 +17,4 @@ runs:
     script: ../../scripts/attacks/nmap/nmap_scan.sh
     profile: ../../profiles/nmap/profile_11.yaml
     env:
-      TARGET_IP: "192.168.8.122"
+      TARGET_IP: "TARGET_IP_PLACEHOLDER"

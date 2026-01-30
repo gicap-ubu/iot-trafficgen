@@ -1,0 +1,7 @@
+profile:
+  tool: paho-mqtt
+  name: MQTT_FLOOD_MED_QOS0_LARGE
+  description: "MQTT flood medium rate (500pps), QoS 0, payload 1024B"
+  mqtt_rate: 500
+  mqtt_qos: 0
+  mqtt_payload_size: 1024

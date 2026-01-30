@@ -1,0 +1,5 @@
+profile:
+  tool: sqlmap
+  name: SQLI_P5_TIME_BASED
+  description: "SQL injection with Time-based technique, no delay, level 4"
+  tool_args: "--delay 0.0 --level 4 --risk 2 --technique T --time-sec 1 --fresh-queries --flush-session"

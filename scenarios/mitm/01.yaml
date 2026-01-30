@@ -1,0 +1,24 @@
+# CONFIGURATION REQUIRED:
+# Update TARGET_A and TARGET_B with your two victim IPs
+# Original dataset used: TARGET_A=192.168.8.121, TARGET_B=192.168.8.122
+# REQUIRES: dsniff package (arpspoof tool)
+
+scenario:
+  name: "ARP_SPOOFING_MITM"
+  description: "ARP spoofing bidirectional MITM attack between two targets (5 min duration)"
+  markers:
+    enabled: true
+    host: "MARKER_HOST_PLACEHOLDER"
+    port: 55556
+
+runs:
+  - id: arp_spoof_01
+    type: attack
+    label: "ARP_SPOOFING_MITM"
+    script: ../../scripts/attacks/mitm/ARP_spoofing.sh
+    profile: ../../profiles/mitm/profile_01.yaml
+    env:
+      TARGET_A: "TARGET_A_PLACEHOLDER"
+      TARGET_B: "TARGET_B_PLACEHOLDER"
+      DURATION: "300"
+      NETWORK_INTERFACE: ""

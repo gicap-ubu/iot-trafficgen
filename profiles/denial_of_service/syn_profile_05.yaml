@@ -1,0 +1,5 @@
+profile:
+  tool: hping3
+  name: SYN_FLOOD_VHIGH_RATE_SMALL
+  description: "SYN flood very high rate (u20000), small payload (60B)"
+  tool_args: "-d 60 -r -i u20000"

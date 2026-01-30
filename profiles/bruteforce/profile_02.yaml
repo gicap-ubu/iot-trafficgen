@@ -1,0 +1,5 @@
+profile:
+  tool: hydra
+  name: SSH_BF_LOW_NORMAL
+  description: "SSH brute force with 2 threads, 300s timeout, normal mode"
+  tool_args: "-t 2 -w 8 -W 0"

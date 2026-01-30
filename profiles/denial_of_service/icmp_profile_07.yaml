@@ -1,0 +1,5 @@
+profile:
+  tool: hping3
+  name: ICMP_FLOOD_MAX_RATE_SMALL
+  description: "ICMP flood maximum rate (FLOOD), small payload (60B)"
+  tool_args: "-d 60 --flood"

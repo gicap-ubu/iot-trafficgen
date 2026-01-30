@@ -1,0 +1,5 @@
+profile:
+  tool: hydra
+  name: SSH_BF_LOW_STEALTH
+  description: "SSH brute force with 1 thread, 300s timeout, stealth mode"
+  tool_args: "-t 1 -w 10 -W 1"

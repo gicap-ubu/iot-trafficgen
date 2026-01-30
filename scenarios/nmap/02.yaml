@@ -1,9 +1,13 @@
+# CONFIGURATION REQUIRED:
+# Update TARGET_IP with your HUB device IP address
+# Original dataset used: 192.168.8.121
+
 scenario:
   name: "NMAP_SYN_HUB_P1_2000_T3"
   description: "SYN scan HUB ports 1-2000, timing T3"
   markers:
     enabled: true
-    host: "192.168.8.121"
+    host: "MARKER_HOST_PLACEHOLDER"
     port: 55556
 
 runs:
@@ -13,4 +17,4 @@ runs:
     script: ../../scripts/attacks/nmap/nmap_scan.sh
     profile: ../../profiles/nmap/profile_02.yaml
     env:
-      TARGET_IP: "192.168.8.121"
+      TARGET_IP: "TARGET_IP_PLACEHOLDER"

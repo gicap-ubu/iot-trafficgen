@@ -1,0 +1,5 @@
+profile:
+  tool: hydra
+  name: SSH_BF_BURST
+  description: "SSH brute force with 16 threads, 120s timeout, burst mode"
+  tool_args: "-t 16 -w 6 -W 0"

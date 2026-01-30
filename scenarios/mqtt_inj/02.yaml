@@ -1,0 +1,43 @@
+# MQTT FALSE DATA INJECTION
+# 
+# CONFIGURATION REQUIRED:
+# This attack is configured for the original dataset infrastructure but can be adapted.
+#
+# ADAPT TO YOUR INFRASTRUCTURE:
+# - BROKER_IP: Your MQTT broker address
+# - TOPIC1, TOPIC2: Your sensor topics (attack rotates between them)
+# - MALICIOUS_VALUE: Value outside your sensor's normal range
+#
+# Original dataset configuration:
+# - Infrastructure: IoT lab with MQTT broker managing industrial sensors
+# - Broker: 192.168.8.121:1883
+# - Topics: planta/sensor/150, planta/sensor/155
+# - Payload format: JSON {"id": SENSOR_ID, "v": VALUE, "t": 25.0, "ts": TIMESTAMP}
+# - Malicious value: 999.0 (normal sensor range: 0-100)
+# - Attack mode: Continuous injection until Ctrl+C (rotates between topics)
+#
+# REQUIRES: paho-mqtt library (pip install paho-mqtt)
+
+scenario:
+  name: "MQTT_INJ_SLOW"
+  description: "MQTT false data injection, slow rate (1.0s delay, 0.2s jitter)"
+  markers:
+    enabled: true
+    host: "MARKER_HOST_PLACEHOLDER"
+    port: 55556
+
+runs:
+  - id: mqtt_inj_02
+    type: attack
+    label: "MQTT_INJ_SLOW"
+    script: ../../scripts/attacks/mqtt_inj/MQTT_injection.sh
+    profile: ../../profiles/mqtt_inj/profile_02.yaml
+    env:
+      BROKER_IP: "BROKER_IP_PLACEHOLDER"
+      BROKER_PORT: "1883"
+      TOPIC1: "planta/sensor/150"
+      TOPIC2: "planta/sensor/155"
+      MALICIOUS_VALUE: "999.0"
+      BASE_DELAY: "1.0"
+      JITTER: "0.2"
+      PYTHON_SCRIPT: "mqtt_injection.py"
