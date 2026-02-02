@@ -274,6 +274,21 @@ def detect_and_configure_placeholders(scenario_path: Path) -> Optional[Path]:
             for key, value in configured_values.items():
                 if key in run['env']:
                     run['env'][key] = value
+        
+        # Resolve relative paths to absolute paths
+        if 'script' in run:
+            script_path = Path(run['script'])
+            if not script_path.is_absolute():
+                # Resolve relative to original scenario directory
+                absolute_script = (scenario_path.parent / script_path).resolve()
+                run['script'] = str(absolute_script)
+        
+        if 'profile' in run:
+            profile_path = Path(run['profile'])
+            if not profile_path.is_absolute():
+                # Resolve relative to original scenario directory
+                absolute_profile = (scenario_path.parent / profile_path).resolve()
+                run['profile'] = str(absolute_profile)
     
     # Create temporary file
     temp_fd, temp_path = tempfile.mkstemp(suffix='.yaml', prefix='iottrafficgen_')
