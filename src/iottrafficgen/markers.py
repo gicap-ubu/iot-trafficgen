@@ -6,7 +6,6 @@ import socket
 import time
 from datetime import datetime
 from typing import Any
-
 import click
 
 
@@ -63,11 +62,11 @@ class MarkerSystem:
                 (self.host, self.port)
             )
             sock.close()
-            click.echo(f"    → Marker: {event} → {self.host}:{self.port}")
+            click.echo(f"    -> Marker: {event} -> {self.host}:{self.port}")
         except socket.timeout:
-            click.secho(f"    ⚠ Marker timeout: {self.host}:{self.port}", fg="yellow")
+            click.secho(f"    [WARNING] Marker timeout: {self.host}:{self.port}", fg="yellow")
         except Exception as e:
-            click.secho(f"    ⚠ Marker error: {e}", fg="yellow")
+            click.secho(f"    [WARNING] Marker error: {e}", fg="yellow")
 
 
 def create_marker_system_from_scenario(scenario_data: dict) -> MarkerSystem:

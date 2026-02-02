@@ -22,12 +22,14 @@ unset NMAP_ARGS
 ARGS_CLEAN="$(printf "%s" "$TOOL_ARGS" | tr -d '\r')"
 read -r -a ARGS <<< "$ARGS_CLEAN"
 
-printf '[nmap_scan] CMD: /opt/homebrew/bin/nmap'
+# Detectar binario de nmap automáticamente
+NMAP_BIN=$(command -v nmap 2>/dev/null || echo "nmap")
+
+printf '[nmap_scan] CMD: %s' "$NMAP_BIN"
 for a in "${ARGS[@]}"; do printf ' %q' "$a"; done
 printf ' -oA %q %q\n' "${OUT_DIR}/scan" "$TARGET_IP"
 
-# Fuerza el binario (para evitar sorpresas de PATH)
-NMAP_BIN="/opt/homebrew/bin/nmap"
+# Ejecutar nmap
 "$NMAP_BIN" "${ARGS[@]}" -oA "${OUT_DIR}/scan" "$TARGET_IP"
 
 echo "[nmap_scan] Completed"
