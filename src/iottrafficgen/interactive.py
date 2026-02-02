@@ -1,5 +1,5 @@
 """
-Interactive menu for iottrafficgen
+Interactive menu
 """
 import sys
 from pathlib import Path
@@ -215,7 +215,75 @@ def print_scenario_details(scenario_num: str, scenario_path: Path, description: 
     print(f"{Fore.CYAN}│{Style.RESET_ALL} Profile: {profile:<49}{Fore.CYAN}│{Style.RESET_ALL}")
     print(f"{Fore.CYAN}│{Style.RESET_ALL} Script: {script:<50}{Fore.CYAN}│{Style.RESET_ALL}")
     print(f"{Fore.CYAN}└─────────────────────────────────────────────────────────────┘{Style.RESET_ALL}\n")
-    print(f"{Fore.YELLOW}Configuration required: Check scenario YAML for placeholders{Style.RESET_ALL}\n")
+
+
+def detect_and_configure_placeholders(scenario_path: Path) -> Optional[Path]:
+    """
+    Detect placeholders in scenario and prompt user for values.
+    Creates a temporary configured YAML file.
+    
+    Returns:
+        Path to configured temporary YAML, or None if user cancels
+    """
+    import tempfile
+    import shutil
+    
+    try:
+        with open(scenario_path, 'r', encoding='utf-8') as f:
+            data = yaml.safe_load(f)
+    except Exception as e:
+        print(f"{Fore.RED}Error reading scenario: {e}{Style.RESET_ALL}")
+        return None
+    
+    # Find all placeholders in env variables
+    placeholders = {}
+    if 'runs' in data:
+        for run in data['runs']:
+            if 'env' in run:
+                for key, value in run['env'].items():
+                    if isinstance(value, str) and '_PLACEHOLDER' in value:
+                        placeholders[key] = value
+    
+    if not placeholders:
+        # No placeholders, use original file
+        return scenario_path
+    
+    # Prompt for configuration
+    print(f"{Fore.YELLOW}Configuration required:{Style.RESET_ALL}\n")
+    
+    configured_values = {}
+    for key, placeholder in placeholders.items():
+        while True:
+            try:
+                print(f"{Fore.CYAN}  {key}:{Style.RESET_ALL} ", end="")
+                value = input().strip()
+                
+                if not value:
+                    print(f"{Fore.RED}  Value cannot be empty. Please try again.{Style.RESET_ALL}")
+                    continue
+                
+                configured_values[key] = value
+                break
+            except KeyboardInterrupt:
+                print(f"\n{Fore.YELLOW}Configuration cancelled.{Style.RESET_ALL}")
+                return None
+    
+    # Replace placeholders in the data
+    for run in data['runs']:
+        if 'env' in run:
+            for key, value in configured_values.items():
+                if key in run['env']:
+                    run['env'][key] = value
+    
+    # Create temporary file
+    temp_fd, temp_path = tempfile.mkstemp(suffix='.yaml', prefix='iottrafficgen_')
+    try:
+        with open(temp_path, 'w', encoding='utf-8') as f:
+            yaml.dump(data, f, default_flow_style=False, sort_keys=False)
+        return Path(temp_path)
+    except Exception as e:
+        print(f"{Fore.RED}Error creating temporary file: {e}{Style.RESET_ALL}")
+        return None
 
 
 def confirm_execution(scenario_path: Path) -> bool:
@@ -285,9 +353,19 @@ def interactive_mode(workspace: Path) -> Optional[Path]:
             # Show details
             print_scenario_details(scenario_num, selected_scenario, description)
             
+            # Detect and configure placeholders
+            configured_scenario = detect_and_configure_placeholders(selected_scenario)
+            
+            if configured_scenario is None:
+                # User cancelled configuration
+                print(f"{Fore.YELLOW}Returning to menu...{Style.RESET_ALL}\n")
+                continue
+            
             # Confirm execution
-            if confirm_execution(selected_scenario):
-                return selected_scenario
+            if confirm_execution(configured_scenario):
+                return configured_scenario
             else:
-                # User typed 'back' or cancelled, return to scenario menu
+                # Clean up temp file if it was created
+                if configured_scenario != selected_scenario and configured_scenario.exists():
+                    configured_scenario.unlink()
                 continue
