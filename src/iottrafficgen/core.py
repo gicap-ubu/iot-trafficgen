@@ -2,12 +2,28 @@
 Core execution logic for iottrafficgen
 """
 import json
+import os
+import subprocess
+import time
 from datetime import datetime
 from pathlib import Path
+from typing import Optional
 
 import click
 
 from . import __version__
+from .errors import (
+    IoTTrafficGenError,
+    PermissionError as IoTPermissionError,
+    PlaceholderNotConfiguredError,
+    ProfileNotFoundError,
+    ToolNotInstalledError,
+    check_tool_installed,
+    detect_placeholders,
+    get_install_hint,
+    validate_script_executable,
+)
+from .logger import get_logger
 from .markers import create_marker_system_from_scenario
 from .models import Profile, Run, RunResult, Scenario
 from .utils import (
@@ -28,8 +44,13 @@ def load_scenario(scenario_path: Path) -> Scenario:
     Returns:
         Validated Scenario object
     """
+    logger = get_logger()
+    logger.debug(f"Loading scenario: {scenario_path}")
+    
     data = load_yaml_file(scenario_path)
     validate_scenario_schema(data)
+    
+    logger.debug("Scenario validation passed")
     return Scenario.from_yaml(scenario_path, data)
 
 
@@ -43,6 +64,12 @@ def load_profile(profile_path: Path) -> Profile:
     Returns:
         Profile object
     """
+    logger = get_logger()
+    logger.debug(f"Loading profile: {profile_path}")
+    
+    if not profile_path.exists():
+        raise ProfileNotFoundError(profile_path)
+    
     data = load_yaml_file(profile_path)
     return Profile.from_yaml(data)
 
@@ -54,7 +81,7 @@ def execute_run(
     dry_run: bool = False,
 ) -> RunResult:
     """
-    Execute a single run with ground truth markers.
+    Execute a single run with ground truth markers and progress tracking.
     
     Args:
         run: Run configuration
@@ -65,32 +92,47 @@ def execute_run(
     Returns:
         RunResult with execution details
     """
+    logger = get_logger()
     timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
     run_id_unique = f"{run.id}_{timestamp}"
+    
+    logger.info(f"Preparing run: {run_id_unique}")
     
     run_dir = workspace / "runs" / run_id_unique
     outputs_dir = run_dir / "outputs"
     outputs_dir.mkdir(parents=True, exist_ok=True)
     
+    # Setup logging for this run
+    run_log_file = run_dir / "execution.log"
+    
     env = run.env.copy()
     env["RUN_ID"] = run_id_unique
     env["OUT_DIR"] = str(outputs_dir)
     
+    # Check for unconfigured placeholders
+    placeholders = detect_placeholders(env)
+    if placeholders:
+        raise PlaceholderNotConfiguredError(placeholders, run.script)
+    
+    # Validate script exists and is executable
+    validate_script_executable(run.script)
+    
     if run.profile:
-        if not run.profile.exists():
-            raise FileNotFoundError(f"Profile not found: {run.profile}")
-        
         profile = load_profile(run.profile)
         env["TOOL_ARGS"] = profile.tool_args
         click.echo(f"    → Profile: {run.profile.name} ({profile.name})")
+        logger.debug(f"Loaded profile: {profile.name}")
     
     click.echo(f"    → Script: {run.script}")
     click.echo(f"    → Run ID: {run_id_unique}")
     click.echo(f"    → Output dir: {outputs_dir}")
+    
     if "TARGET_IP" in env:
         click.echo(f"    → Target: {env['TARGET_IP']}")
     if "TOOL_ARGS" in env:
         click.echo(f"    → Tool args: {env['TOOL_ARGS']}")
+    
+    logger.debug(f"Environment variables: {json.dumps(env, indent=2)}")
     
     marker_metadata = {
         "target_ip": env.get("TARGET_IP"),
@@ -98,6 +140,7 @@ def execute_run(
         "label": run.label,
     }
     
+    logger.info("Sending ATTACK_START marker")
     marker_system.send(
         event="ATTACK_START",
         attack_id=run_id_unique,
@@ -110,30 +153,61 @@ def execute_run(
     
     if dry_run:
         click.echo(f"    → [DRY RUN] Would execute: {run.script}")
+        logger.info("[DRY RUN] Skipping execution")
         returncode = 0
         stdout = "[dry run - no output]"
         stderr = ""
     else:
-        result = execute_shell_script(run.script, env)
+        # Show progress indicator
+        click.echo(f"\n    Executing attack...")
+        
+        with click.progressbar(
+            length=100,
+            label='    Progress',
+            show_eta=False,
+            show_percent=False,
+            bar_template='    %(label)s [%(bar)s] %(info)s',
+            fill_char='━',
+            empty_char='─'
+        ) as bar:
+            # Execute script
+            logger.info(f"Executing script: {run.script}")
+            result = execute_shell_script(run.script, env)
+            
+            # Simulate progress (since we can't track real progress)
+            for i in range(100):
+                bar.update(1)
+                time.sleep(0.01)
+        
         returncode = result.returncode
         stdout = result.stdout
         stderr = result.stderr
         
+        logger.debug(f"Script exit code: {returncode}")
+        
         if stdout:
             click.echo(stdout, nl=False)
+            logger.debug(f"Script stdout: {stdout[:500]}...")
         
-        if stderr and returncode != 0:
-            click.secho(stderr, fg="yellow", nl=False)
+        if stderr:
+            if returncode != 0:
+                click.secho(stderr, fg="yellow", nl=False)
+                logger.warning(f"Script stderr: {stderr[:500]}...")
+            else:
+                logger.debug(f"Script stderr: {stderr[:500]}...")
     
     end_time = datetime.utcnow()
     end_time_str = get_timestamp_utc()
     duration = (end_time - start_time).total_seconds()
+    
+    logger.info(f"Execution completed in {duration:.2f}s with code {returncode}")
     
     marker_metadata.update({
         "returncode": returncode,
         "duration_s": duration,
     })
     
+    logger.info("Sending ATTACK_END marker")
     marker_system.send(
         event="ATTACK_END",
         attack_id=run_id_unique,
@@ -167,6 +241,8 @@ def save_run_metadata(run: Run, result: RunResult, run_dir: Path) -> None:
         result: Execution result
         run_dir: Directory to save metadata
     """
+    logger = get_logger()
+    
     metadata = {
         "tool": "iottrafficgen",
         "version": __version__,
@@ -191,6 +267,7 @@ def save_run_metadata(run: Run, result: RunResult, run_dir: Path) -> None:
         json.dump(metadata, f, indent=2, ensure_ascii=False)
     
     click.echo(f"    → Metadata: {metadata_file}")
+    logger.debug(f"Saved metadata: {metadata_file}")
 
 
 def save_scenario_metadata(
@@ -206,6 +283,8 @@ def save_scenario_metadata(
         results: List of run results
         workspace: Working directory
     """
+    logger = get_logger()
+    
     metadata = {
         "tool": "iottrafficgen",
         "version": __version__,
@@ -235,13 +314,16 @@ def save_scenario_metadata(
     with open(metadata_file, "w", encoding="utf-8") as f:
         json.dump(metadata, f, indent=2, ensure_ascii=False)
     
-    click.echo(f"\n📊 Scenario metadata: {metadata_file}")
+    click.echo(f"\n[METADATA] Scenario metadata: {metadata_file}")
+    logger.info(f"Saved scenario metadata: {metadata_file}")
 
 
 def run_scenario(
     scenario_path: Path,
     workspace: Path,
     dry_run: bool = False,
+    verbose: bool = False,
+    quiet: bool = False,
 ) -> None:
     """
     Execute a traffic generation scenario.
@@ -250,50 +332,74 @@ def run_scenario(
         scenario_path: Path to scenario YAML file
         workspace: Working directory for outputs
         dry_run: If True, only validate without executing
+        verbose: Enable verbose logging
+        quiet: Only show errors
     """
+    from .logger import setup_logging
+    
+    # Setup logging
+    log_dir = workspace / ".iottrafficgen" / "logs" if not dry_run else None
+    logger = setup_logging(log_dir=log_dir, verbose=verbose, quiet=quiet)
+    
+    logger.info(f"iottrafficgen v{__version__}")
+    logger.info(f"Loading scenario: {scenario_path}")
+    
     click.echo(f"Loading scenario: {scenario_path}")
     
-    scenario_data = load_yaml_file(scenario_path)
-    validate_scenario_schema(scenario_data)
-    scenario = Scenario.from_yaml(scenario_path, scenario_data)
-    
-    marker_system = create_marker_system_from_scenario(scenario_data)
-    
-    click.echo(f"Scenario: {scenario.metadata.name}")
-    click.echo(f"Description: {scenario.metadata.description}")
-    click.echo(f"Runs: {len(scenario.runs)}")
-    click.echo(f"Workspace: {workspace}")
-    
-    scenario_markers = scenario_data.get("scenario", {}).get("markers", {})
-    if scenario_markers.get("enabled", True):
-        marker_host = scenario_markers.get("host", "127.0.0.1")
-        marker_port = scenario_markers.get("port", 55556)
-        click.echo(f"Ground truth markers: enabled → {marker_host}:{marker_port}")
-    else:
-        click.echo("Ground truth markers: disabled")
-    
-    click.echo()
-    
-    if dry_run:
-        click.secho("[DRY RUN MODE - No scripts will be executed]", fg="yellow")
-        click.echo()
-    
-    results = []
-    for i, run in enumerate(scenario.runs, 1):
-        click.echo(f"[{i}/{len(scenario.runs)}] Run: {run.id} ({run.run_type})")
+    try:
+        scenario_data = load_yaml_file(scenario_path)
+        validate_scenario_schema(scenario_data)
+        scenario = Scenario.from_yaml(scenario_path, scenario_data)
         
-        try:
+        marker_system = create_marker_system_from_scenario(scenario_data)
+        
+        click.echo(f"Scenario: {scenario.metadata.name}")
+        click.echo(f"Description: {scenario.metadata.description}")
+        click.echo(f"Runs: {len(scenario.runs)}")
+        click.echo(f"Workspace: {workspace}")
+        
+        scenario_markers = scenario_data.get("scenario", {}).get("markers", {})
+        if scenario_markers.get("enabled", True):
+            marker_host = scenario_markers.get("host", "127.0.0.1")
+            marker_port = scenario_markers.get("port", 55556)
+            click.echo(f"Ground truth markers: enabled → {marker_host}:{marker_port}")
+            logger.info(f"Markers enabled: {marker_host}:{marker_port}")
+        else:
+            click.echo("Ground truth markers: disabled")
+            logger.info("Markers disabled")
+        
+        click.echo()
+        
+        if dry_run:
+            click.secho("[DRY RUN MODE - No scripts will be executed]", fg="yellow")
+            logger.info("DRY RUN mode enabled")
+            click.echo()
+        
+        results = []
+        for i, run in enumerate(scenario.runs, 1):
+            click.echo(f"[{i}/{len(scenario.runs)}] Run: {run.id} ({run.run_type})")
+            logger.info(f"Starting run {i}/{len(scenario.runs)}: {run.id}")
+            
             result = execute_run(run, workspace, marker_system, dry_run)
             results.append(result)
             
             if result.returncode == 0:
                 click.secho(f"    ✓ Success (duration: {result.duration_s:.2f}s)\n", fg="green")
+                logger.info(f"Run completed successfully in {result.duration_s:.2f}s")
             else:
                 click.secho(f"    ✗ Failed with code {result.returncode}\n", fg="red")
+                logger.error(f"Run failed with exit code {result.returncode}")
         
-        except Exception as e:
-            click.secho(f"    ✗ Error: {e}\n", fg="red")
-            raise
+        if not dry_run:
+            save_scenario_metadata(scenario, results, workspace)
+        
+        logger.info("Scenario execution completed")
     
-    if not dry_run:
-        save_scenario_metadata(scenario, results, workspace)
+    except IoTTrafficGenError as e:
+        logger.error(f"Error: {e.message}")
+        e.display()
+        raise SystemExit(1)
+    
+    except Exception as e:
+        logger.exception(f"Unexpected error: {e}")
+        raise
