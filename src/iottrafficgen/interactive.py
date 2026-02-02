@@ -297,6 +297,29 @@ def detect_and_configure_placeholders(scenario_path: Path) -> Optional[Path]:
                 # Resolve relative to original scenario directory
                 absolute_profile = (scenario_path.parent / profile_path).resolve()
                 run['profile'] = str(absolute_profile)
+        
+        # Resolve WORDLIST path intelligently
+        if 'env' in run and 'WORDLIST' in run['env']:
+            wordlist_value = run['env']['WORDLIST']
+            wordlist_path = Path(wordlist_value)
+            
+            # If absolute path, use as-is
+            if wordlist_path.is_absolute():
+                run['env']['WORDLIST'] = str(wordlist_path)
+            # If just a filename (no path separators), search in known locations
+            elif '/' not in wordlist_value and '\\' not in wordlist_value:
+                # Search in scripts/attacks/bruteforce/ directory
+                script_dir = scenario_path.parent.parent.parent / 'scripts' / 'attacks' / 'bruteforce'
+                candidate = script_dir / wordlist_value
+                if candidate.exists():
+                    run['env']['WORDLIST'] = str(candidate.resolve())
+                else:
+                    # If not found, leave as-is and let the script handle the error
+                    run['env']['WORDLIST'] = wordlist_value
+            # If relative path with directories, resolve from scenario directory
+            else:
+                absolute_wordlist = (scenario_path.parent / wordlist_path).resolve()
+                run['env']['WORDLIST'] = str(absolute_wordlist)
     
     # Replace placeholder in scenario markers
     if 'MARKER_HOST' in configured_values:
