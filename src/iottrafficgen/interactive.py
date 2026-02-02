@@ -235,14 +235,22 @@ def detect_and_configure_placeholders(scenario_path: Path) -> Optional[Path]:
         print(f"{Fore.RED}Error reading scenario: {e}{Style.RESET_ALL}")
         return None
     
-    # Find all placeholders in env variables
+    # Find all placeholders in env variables AND scenario markers
     placeholders = {}
+    
+    # Check runs env variables
     if 'runs' in data:
         for run in data['runs']:
             if 'env' in run:
                 for key, value in run['env'].items():
                     if isinstance(value, str) and '_PLACEHOLDER' in value:
                         placeholders[key] = value
+    
+    # Check scenario markers
+    if 'scenario' in data and 'markers' in data['scenario']:
+        markers = data['scenario']['markers']
+        if 'host' in markers and isinstance(markers['host'], str) and '_PLACEHOLDER' in markers['host']:
+            placeholders['MARKER_HOST'] = markers['host']
     
     if not placeholders:
         # No placeholders, use original file
@@ -268,7 +276,7 @@ def detect_and_configure_placeholders(scenario_path: Path) -> Optional[Path]:
                 print(f"\n{Fore.YELLOW}Configuration cancelled.{Style.RESET_ALL}")
                 return None
     
-    # Replace placeholders in the data
+    # Replace placeholders in runs env
     for run in data['runs']:
         if 'env' in run:
             for key, value in configured_values.items():
@@ -290,6 +298,14 @@ def detect_and_configure_placeholders(scenario_path: Path) -> Optional[Path]:
                 absolute_profile = (scenario_path.parent / profile_path).resolve()
                 run['profile'] = str(absolute_profile)
     
+    # Replace placeholder in scenario markers
+    if 'MARKER_HOST' in configured_values:
+        if 'scenario' not in data:
+            data['scenario'] = {}
+        if 'markers' not in data['scenario']:
+            data['scenario']['markers'] = {}
+        data['scenario']['markers']['host'] = configured_values['MARKER_HOST']
+    
     # Create temporary file
     temp_fd, temp_path = tempfile.mkstemp(suffix='.yaml', prefix='iottrafficgen_')
     try:
@@ -303,12 +319,10 @@ def detect_and_configure_placeholders(scenario_path: Path) -> Optional[Path]:
 
 def confirm_execution(scenario_path: Path) -> bool:
     """Ask user to confirm scenario execution."""
-    print(f"{Fore.YELLOW}→{Style.RESET_ALL} Execute this scenario? [y/N/back]: ", end="")
+    print(f"{Fore.YELLOW}→{Style.RESET_ALL} Execute this scenario? [y/N]: ", end="")
     
     try:
         response = input().strip().lower()
-        if response == 'back':
-            return False
         return response in ('y', 'yes')
     except KeyboardInterrupt:
         print(f"\n{Fore.YELLOW}Cancelled.{Style.RESET_ALL}")
