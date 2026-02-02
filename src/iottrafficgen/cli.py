@@ -26,11 +26,11 @@ def main():
     and dataset creation.
     
     Features:
-      • 63 pre-configured attack scenarios across 7 categories
-      • Interactive menu system for easy scenario selection
-      • Automated ground-truth labeling with UDP markers
-      • Comprehensive logging and error handling
-      • Progress tracking and execution monitoring
+      - 63 pre-configured attack scenarios across 7 categories
+      - Interactive menu system for easy scenario selection
+      - Automated ground-truth labeling with UDP markers
+      - Comprehensive logging and error handling
+      - Progress tracking and execution monitoring
     
     Quick Start:
       iottrafficgen run                    # Interactive mode
@@ -131,16 +131,16 @@ def run(scenario: Path, workspace: Path, dry_run: bool, verbose: bool, quiet: bo
             quiet=quiet,
         )
         
-        click.secho("\n✓ Scenario completed successfully", fg="green")
+        click.secho("\n[SUCCESS] Scenario completed successfully", fg="green")
         
     except FileNotFoundError as e:
-        click.secho(f"✗ Error: {e}", fg="red", err=True)
+        click.secho(f"[ERROR] {e}", fg="red", err=True)
         sys.exit(1)
     except ValueError as e:
-        click.secho(f"✗ Validation error: {e}", fg="red", err=True)
+        click.secho(f"[ERROR] Validation error: {e}", fg="red", err=True)
         sys.exit(1)
     except Exception as e:
-        click.secho(f"✗ Unexpected error: {e}", fg="red", err=True)
+        click.secho(f"[ERROR] Unexpected error: {e}", fg="red", err=True)
         sys.exit(1)
 
 
@@ -195,7 +195,7 @@ def list_scenarios(workspace: Path, category: str, count_only: bool):
     scenarios_dir = workspace / "scenarios"
     
     if not scenarios_dir.exists():
-        click.secho("✗ No scenarios directory found", fg="red")
+        click.secho("[ERROR] No scenarios directory found", fg="red")
         click.echo(f"Expected: {scenarios_dir}")
         sys.exit(1)
     
@@ -256,7 +256,7 @@ def list_scenarios(workspace: Path, category: str, count_only: bool):
         
         for scenario in scenarios:
             relative_path = scenario['file'].relative_to(workspace)
-            click.echo(f"  {Fore.GREEN}•{Style.RESET_ALL} {relative_path}")
+            click.echo(f"  {Fore.GREEN}-{Style.RESET_ALL} {relative_path}")
             click.echo(f"    {scenario['description']}")
         
         click.echo()

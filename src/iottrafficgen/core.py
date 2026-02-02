@@ -102,8 +102,12 @@ def execute_run(
     outputs_dir = run_dir / "outputs"
     outputs_dir.mkdir(parents=True, exist_ok=True)
     
-    # Setup logging for this run
-    run_log_file = run_dir / "execution.log"
+    # Setup file logging for this specific run
+    from .logger import setup_logging
+    if not dry_run:
+        log_file = run_dir / "execution.log"
+        logger = setup_logging(log_dir=run_dir, verbose=True, quiet=False)
+        logger.info(f"Logging to: {log_file}")
     
     env = run.env.copy()
     env["RUN_ID"] = run_id_unique
@@ -337,9 +341,8 @@ def run_scenario(
     """
     from .logger import setup_logging
     
-    # Setup logging
-    log_dir = workspace / ".iottrafficgen" / "logs" if not dry_run else None
-    logger = setup_logging(log_dir=log_dir, verbose=verbose, quiet=quiet)
+    # Setup console-only logging (file logs are per-run)
+    logger = setup_logging(log_dir=None, verbose=verbose, quiet=quiet)
     
     logger.info(f"iottrafficgen v{__version__}")
     logger.info(f"Loading scenario: {scenario_path}")
@@ -384,10 +387,10 @@ def run_scenario(
             results.append(result)
             
             if result.returncode == 0:
-                click.secho(f"    ✓ Success (duration: {result.duration_s:.2f}s)\n", fg="green")
+                click.secho(f"    [SUCCESS] Completed in {result.duration_s:.2f}s\n", fg="green")
                 logger.info(f"Run completed successfully in {result.duration_s:.2f}s")
             else:
-                click.secho(f"    ✗ Failed with code {result.returncode}\n", fg="red")
+                click.secho(f"    [FAILED] Exit code {result.returncode}\n", fg="red")
                 logger.error(f"Run failed with exit code {result.returncode}")
         
         if not dry_run:

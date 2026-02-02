@@ -7,7 +7,7 @@ import click
 
 
 class IoTTrafficGenError(Exception):
-    """Base exception for errors."""
+    """Base exception for iottrafficgen errors."""
     
     def __init__(self, message: str, hint: Optional[str] = None):
         self.message = message
@@ -16,7 +16,7 @@ class IoTTrafficGenError(Exception):
     
     def display(self):
         """Display formatted error message."""
-        click.secho(f"\n✗ Error: {self.message}", fg="red", bold=True)
+        click.secho(f"\n[ERROR] {self.message}", fg="red", bold=True)
         if self.hint:
             click.secho(f"\n  Hint: {self.hint}", fg="yellow")
         click.echo()
