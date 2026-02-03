@@ -1,20 +1,16 @@
-# CONFIGURATION REQUIRED:
-# Update TARGET_IP with your target server
-# Original dataset used: TARGET_IP=192.168.8.122
-
 scenario:
-  name: "ICMP_FLOOD_HIGH_RATE_LARGE"
-  description: "ICMP flood high rate (u10000), large payload (300B)"
+  name: ICMP_FLOOD_HIGH_RATE_LARGE
+  description: ICMP flood high rate (u10000), large payload (300B)
   markers:
     enabled: true
-    host: "MARKER_HOST_PLACEHOLDER"
+    host: MARKER_HOST_PLACEHOLDER
     port: 55556
-
 runs:
-  - id: icmp_flood_03
-    type: attack
-    label: "ICMP_FLOOD_HIGH_RATE_LARGE"
-    script: ../../scripts/attacks/denial_of_service/ICMP_flood.sh
-    profile: ../../profiles/denial_of_service/icmp_profile_03.yaml
-    env:
-      TARGET_IP: "TARGET_IP_PLACEHOLDER"
+- id: icmp_flood_03
+  type: attack
+  label: ICMP_FLOOD_HIGH_RATE_LARGE
+  script: ../../scripts/attacks/denial_of_service/ICMP_flood.sh
+  profile: ../../profiles/denial_of_service/icmp_profile_03.yaml
+  env:
+    TARGET_IP: TARGET_IP_PLACEHOLDER
+    DURATION_SECONDS: DURATION_SECONDS_PLACEHOLDER

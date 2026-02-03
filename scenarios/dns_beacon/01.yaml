@@ -1,43 +1,20 @@
-# DNS BEACONING - C2 SIMULATION
-#
-# CONFIGURATION REQUIRED:
-# This attack simulates Command & Control (C2) communication via periodic DNS queries.
-#
-# ADAPT TO YOUR INFRASTRUCTURE:
-# - RESOLVER_IP: Your DNS server (can be any DNS resolver)
-# - INTERVAL: Time between queries (seconds)
-# - JITTER: Randomness to avoid perfect periodicity (0.0-1.0)
-# - LABEL_LEN: Length of random subdomain (simulates high-entropy beaconing)
-#
-# Original dataset configuration:
-# - Infrastructure: IoT lab with DNS resolver at 192.168.8.121
-# - Resolver: 192.168.8.121
-# - Base domains: lab.local, iot.local (generate NXDOMAIN responses)
-# - Query types: A, AAAA, TXT (rotates)
-# - Interval: 3.5s with ±20% jitter
-# - Label length: 55 characters (high entropy, no actual data exfiltration)
-# - Seed: 20260111 (reproducible randomness)
-# - Attack mode: Continuous until Ctrl+C
-#
-# REQUIRES: dnspython library (pip install dnspython)
-
 scenario:
-  name: "DNS_BEACONING_HIGH_ENTROPY"
-  description: "DNS beaconing with high-entropy labels simulating C2 communication"
+  name: DNS_BEACONING_HIGH_ENTROPY
+  description: DNS beaconing with high-entropy labels simulating C2 communication
   markers:
     enabled: true
-    host: "MARKER_HOST_PLACEHOLDER"
+    host: MARKER_HOST_PLACEHOLDER
     port: 55556
-
 runs:
-  - id: dns_beacon_01
-    type: attack
-    label: "DNS_BEACONING_HIGH_ENTROPY"
-    script: ../../scripts/attacks/dns_beacon/DNS_beaconing.sh
-    profile: ../../profiles/dns_beacon/profile_01.yaml
-    env:
-      RESOLVER_IP: "RESOLVER_IP_PLACEHOLDER"
-      INTERVAL: "3.5"
-      JITTER: "0.20"
-      LABEL_LEN: "55"
-      PYTHON_SCRIPT: "dns_beaconing.py"
+- id: dns_beacon_01
+  type: attack
+  label: DNS_BEACONING_HIGH_ENTROPY
+  script: ../../scripts/attacks/dns_beacon/DNS_beaconing.sh
+  profile: ../../profiles/dns_beacon/profile_01.yaml
+  env:
+    RESOLVER_IP: RESOLVER_IP_PLACEHOLDER
+    INTERVAL: '3.5'
+    JITTER: '0.20'
+    LABEL_LEN: '55'
+    PYTHON_SCRIPT: dns_beaconing.py
+    DURATION_SECONDS: DURATION_SECONDS_PLACEHOLDER

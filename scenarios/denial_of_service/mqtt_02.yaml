@@ -1,26 +1,21 @@
-# CONFIGURATION REQUIRED:
-# Update BROKER_IP and BROKER_PORT with your MQTT broker address
-# Original dataset used: BROKER_IP=192.168.8.121, BROKER_PORT=1883
-# REQUIRES: paho-mqtt library (pip install paho-mqtt)
-
 scenario:
-  name: "MQTT_FLOOD_MED_QOS1"
-  description: "MQTT flood medium rate (500pps), QoS 1, payload 128B"
+  name: MQTT_FLOOD_MED_QOS1
+  description: MQTT flood medium rate (500pps), QoS 1, payload 128B
   markers:
     enabled: true
-    host: "MARKER_HOST_PLACEHOLDER"
+    host: MARKER_HOST_PLACEHOLDER
     port: 55556
-
 runs:
-  - id: mqtt_flood_02
-    type: attack
-    label: "MQTT_FLOOD_MED_QOS1"
-    script: ../../scripts/attacks/denial_of_service/MQTT_flood.sh
-    profile: ../../profiles/denial_of_service/mqtt_profile_02.yaml
-    env:
-      BROKER_IP: "BROKER_IP_PLACEHOLDER"
-      BROKER_PORT: "1883"
-      QOS: "1"
-      PAYLOAD_SIZE: "128"
-      RATE: "500"
-      PYTHON_SCRIPT: "mqtt_flood.py"
+- id: mqtt_flood_02
+  type: attack
+  label: MQTT_FLOOD_MED_QOS1
+  script: ../../scripts/attacks/denial_of_service/MQTT_flood.sh
+  profile: ../../profiles/denial_of_service/mqtt_profile_02.yaml
+  env:
+    BROKER_IP: BROKER_IP_PLACEHOLDER
+    BROKER_PORT: '1883'
+    QOS: '1'
+    PAYLOAD_SIZE: '128'
+    RATE: '500'
+    PYTHON_SCRIPT: mqtt_flood.py
+    DURATION_SECONDS: DURATION_SECONDS_PLACEHOLDER
