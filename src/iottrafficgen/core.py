@@ -102,7 +102,6 @@ def execute_run(
     outputs_dir = run_dir / "outputs"
     outputs_dir.mkdir(parents=True, exist_ok=True)
     
-    # Setup file logging for this specific run
     from .logger import setup_logging
     if not dry_run:
         log_file = run_dir / "execution.log"
@@ -113,12 +112,10 @@ def execute_run(
     env["RUN_ID"] = run_id_unique
     env["OUT_DIR"] = str(outputs_dir)
     
-    # Check for unconfigured placeholders
     placeholders = detect_placeholders(env)
     if placeholders:
         raise PlaceholderNotConfiguredError(placeholders, run.script)
     
-    # Validate script exists and is executable
     validate_script_executable(run.script)
     
     if run.profile:
@@ -162,15 +159,9 @@ def execute_run(
         stdout = "[dry run - no output]"
         stderr = ""
     else:
-        # Check if attack has duration (for time-based progress bar)
         duration_str = env.get('DURATION_SECONDS')
         has_duration = False
         duration = 0
-        
-        # Check if attack reports progress (for attempt-based progress)
-        progress_total_str = None
-        has_progress_tracking = False
-        progress_total = 0
         
         if duration_str:
             try:
@@ -184,7 +175,6 @@ def execute_run(
         
         logger.info(f"Executing script: {run.script}")
         
-        # Start script in background
         proc = subprocess.Popen(
             ['bash', str(run.script)],
             env={**os.environ, **env},
@@ -194,12 +184,13 @@ def execute_run(
             bufsize=1
         )
         
-        # Check for PROGRESS_TOTAL in initial output
-        progress_file = outputs_dir / "progress.txt"
         output_lines = []
+        progress_file = outputs_dir / "progress.txt"
+        progress_total = 0
+        last_progress = 0
+        bar = None
         
         if has_duration:
-            # Real-time progress bar based on duration
             with click.progressbar(
                 length=duration,
                 label='    Progress',
@@ -215,87 +206,83 @@ def execute_run(
                     elapsed += 1
                     bar.update(1)
                     
-                    # Capture output
                     if proc.stdout:
-                        line = proc.stdout.readline()
-                        if line:
+                        while True:
+                            line = proc.stdout.readline()
+                            if not line:
+                                break
                             output_lines.append(line)
                 
-                # Fill remaining if finished early
                 if elapsed < duration and proc.poll() is not None:
                     bar.update(duration - elapsed)
         else:
-            # Check if script reports PROGRESS_TOTAL (SSH BF style)
             while proc.poll() is None:
-                if proc.stdout:
-                    line = proc.stdout.readline()
-                    if line:
-                        output_lines.append(line)
-                        
-                        # Detect PROGRESS_TOTAL from output
-                        if "PROGRESS_TOTAL=" in line and not has_progress_tracking:
-                            try:
-                                progress_total = int(line.split("PROGRESS_TOTAL=")[1].strip())
-                                has_progress_tracking = True
-                                click.echo(f"    Total attempts: {progress_total}")
-                                
-                                # Start progress bar
-                                with click.progressbar(
-                                    length=progress_total,
-                                    label='    Progress',
-                                    show_eta=False,
-                                    show_percent=True,
-                                    bar_template='    %(label)s [%(bar)s] %(info)s',
-                                    fill_char='━',
-                                    empty_char='─'
-                                ) as bar:
-                                    last_progress = 0
-                                    while proc.poll() is None:
-                                        time.sleep(0.5)
-                                        
-                                        # Read progress file
-                                        if progress_file.exists():
-                                            try:
-                                                with open(progress_file, 'r') as f:
-                                                    content = f.read()
-                                                    if "PROGRESS_CURRENT=" in content:
-                                                        current = int(content.split("PROGRESS_CURRENT=")[1].strip())
-                                                        if current > last_progress:
-                                                            bar.update(current - last_progress)
-                                                            last_progress = current
-                                            except (ValueError, FileNotFoundError):
-                                                pass
-                                        
-                                        # Continue capturing output
-                                        if proc.stdout:
-                                            line = proc.stdout.readline()
-                                            if line:
-                                                output_lines.append(line)
-                                break
-                            except (ValueError, IndexError):
-                                pass
-                else:
+                if not proc.stdout:
                     time.sleep(0.1)
-            
-            # If no progress tracking, just wait
-            if not has_progress_tracking:
-                proc.wait()
+                    continue
+                    
+                line = proc.stdout.readline()
+                if not line:
+                    time.sleep(0.1)
+                    continue
+                
+                output_lines.append(line)
+                
+                if "PROGRESS_TOTAL=" in line and progress_total == 0:
+                    try:
+                        progress_total = int(line.split("PROGRESS_TOTAL=")[1].strip())
+                        click.echo(line.rstrip())
+                        
+                        bar = click.progressbar(
+                            length=progress_total,
+                            label='    Progress',
+                            show_eta=False,
+                            show_percent=True,
+                            bar_template='    %(label)s [%(bar)s] %(info)s',
+                            fill_char='━',
+                            empty_char='─'
+                        )
+                        bar.__enter__()
+                    except (ValueError, IndexError):
+                        click.echo(line.rstrip())
+                elif progress_total > 0:
+                    if progress_file.exists():
+                        try:
+                            with open(progress_file, 'r') as f:
+                                content = f.read()
+                                if "PROGRESS_CURRENT=" in content:
+                                    current = int(content.split("PROGRESS_CURRENT=")[1].strip())
+                                    if current > last_progress and bar:
+                                        bar.update(current - last_progress)
+                                        last_progress = current
+                        except (ValueError, FileNotFoundError, IOError):
+                            pass
+                    
+                    if not line.startswith('[') or 'PROGRESS' in line or 'ERROR' in line:
+                        click.echo(line.rstrip())
+                else:
+                    if line.strip():
+                        click.echo(line.rstrip())
         
-        # Get remaining output
+        if bar:
+            try:
+                bar.__exit__(None, None, None)
+            except:
+                pass
+        
         if proc.stdout:
             remaining = proc.stdout.read()
             if remaining:
                 output_lines.append(remaining)
+                for line in remaining.splitlines():
+                    if line.strip():
+                        click.echo(line)
         
         stdout = ''.join(output_lines)
         stderr = ""
         returncode = proc.returncode
         
         logger.debug(f"Script exit code: {returncode}")
-        
-        if stdout:
-            click.echo(stdout, nl=False)
-            logger.debug(f"Script stdout: {stdout[:500]}...")
         
         if returncode != 0:
             logger.warning(f"Script failed with exit code {returncode}")
@@ -337,14 +324,6 @@ def execute_run(
 
 
 def save_run_metadata(run: Run, result: RunResult, run_dir: Path) -> None:
-    """
-    Save metadata for a single run.
-    
-    Args:
-        run: Run configuration
-        result: Execution result
-        run_dir: Directory to save metadata
-    """
     logger = get_logger()
     
     metadata = {
@@ -379,14 +358,6 @@ def save_scenario_metadata(
     results: list[RunResult],
     workspace: Path,
 ) -> None:
-    """
-    Save overall scenario metadata.
-    
-    Args:
-        scenario: Scenario configuration
-        results: List of run results
-        workspace: Working directory
-    """
     logger = get_logger()
     
     metadata = {
@@ -429,19 +400,8 @@ def run_scenario(
     verbose: bool = False,
     quiet: bool = False,
 ) -> None:
-    """
-    Execute a traffic generation scenario.
-    
-    Args:
-        scenario_path: Path to scenario YAML file
-        workspace: Working directory for outputs
-        dry_run: If True, only validate without executing
-        verbose: Enable verbose logging
-        quiet: Only show errors
-    """
     from .logger import setup_logging
     
-    # Setup console-only logging (file logs are per-run)
     logger = setup_logging(log_dir=None, verbose=verbose, quiet=quiet)
     
     logger.info(f"iottrafficgen v{__version__}")
