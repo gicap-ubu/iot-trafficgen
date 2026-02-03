@@ -25,7 +25,6 @@ fi
 
 WORDLIST_SIZE=$(wc -l < "$WORDLIST")
 echo "[ssh_bruteforce] Wordlist size: ${WORDLIST_SIZE} passwords"
-echo "PROGRESS_TOTAL=${WORDLIST_SIZE}"
 
 read -r -a ARGS <<< "$TOOL_ARGS"
 

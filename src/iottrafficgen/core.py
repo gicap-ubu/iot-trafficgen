@@ -3,6 +3,7 @@ Core execution logic
 """
 import json
 import os
+import re
 import subprocess
 import time
 from datetime import datetime
@@ -32,6 +33,19 @@ from .utils import (
     load_yaml_file,
     validate_scenario_schema,
 )
+
+# Patrones de líneas a filtrar del output
+NOISE_PATTERNS = [
+    r'https?://github\.com',
+    r'^\s*$',
+]
+
+def should_filter_line(line: str) -> bool:
+    """Check if a line should be filtered from output."""
+    for pattern in NOISE_PATTERNS:
+        if re.search(pattern, line, re.IGNORECASE):
+            return True
+    return False
 
 
 def load_scenario(scenario_path: Path) -> Scenario:
@@ -81,7 +95,7 @@ def execute_run(
     dry_run: bool = False,
 ) -> RunResult:
     """
-    Execute a single run with ground truth markers and progress tracking.
+    Execute a single run with ground truth markers.
     
     Args:
         run: Run configuration
@@ -159,19 +173,24 @@ def execute_run(
         stdout = "[dry run - no output]"
         stderr = ""
     else:
+        # Check if we have a known duration
         duration_str = env.get('DURATION_SECONDS')
         has_duration = False
-        duration = 0
+        duration_secs = 0
         
         if duration_str:
             try:
-                duration = int(duration_str)
+                duration_secs = int(duration_str)
                 has_duration = True
-                click.echo(f"\n    Executing attack (duration: {duration}s)...")
             except (ValueError, TypeError):
-                click.echo(f"\n    Executing attack...")
+                pass
+        
+        click.echo()
+        if has_duration:
+            click.echo(f"    Executing (duration: {duration_secs}s)...")
         else:
-            click.echo(f"\n    Executing attack...")
+            click.echo(f"    Executing...")
+        click.echo()
         
         logger.info(f"Executing script: {run.script}")
         
@@ -185,14 +204,11 @@ def execute_run(
         )
         
         output_lines = []
-        progress_file = outputs_dir / "progress.txt"
-        progress_total = 0
-        last_progress = 0
-        bar = None
         
         if has_duration:
+            # Con duración conocida: mostrar barra de progreso basada en tiempo
             with click.progressbar(
-                length=duration,
+                length=duration_secs,
                 label='    Progress',
                 show_eta=True,
                 show_percent=True,
@@ -201,11 +217,12 @@ def execute_run(
                 empty_char='─'
             ) as bar:
                 elapsed = 0
-                while proc.poll() is None and elapsed < duration:
+                while proc.poll() is None and elapsed < duration_secs:
                     time.sleep(1)
                     elapsed += 1
                     bar.update(1)
                     
+                    # Leer output disponible sin bloquear
                     if proc.stdout:
                         while True:
                             line = proc.stdout.readline()
@@ -213,9 +230,11 @@ def execute_run(
                                 break
                             output_lines.append(line)
                 
-                if elapsed < duration and proc.poll() is not None:
-                    bar.update(duration - elapsed)
+                # Si terminó antes, completar la barra
+                if elapsed < duration_secs and proc.poll() is not None:
+                    bar.update(duration_secs - elapsed)
         else:
+            # Sin duración: mostrar output en tiempo real, filtrado
             while proc.poll() is None:
                 if not proc.stdout:
                     time.sleep(0.1)
@@ -228,53 +247,19 @@ def execute_run(
                 
                 output_lines.append(line)
                 
-                if "PROGRESS_TOTAL=" in line and progress_total == 0:
-                    try:
-                        progress_total = int(line.split("PROGRESS_TOTAL=")[1].strip())
-                        click.echo(line.rstrip())
-                        
-                        bar = click.progressbar(
-                            length=progress_total,
-                            label='    Progress',
-                            show_eta=False,
-                            show_percent=True,
-                            bar_template='    %(label)s [%(bar)s] %(info)s',
-                            fill_char='━',
-                            empty_char='─'
-                        )
-                        bar.__enter__()
-                    except (ValueError, IndexError):
-                        click.echo(line.rstrip())
-                elif progress_total > 0:
-                    # Parse [N][ssh] from Hydra output
-                    import re
-                    match = re.search(r'\[(\d+)\]\[ssh\]', line)
-                    if match:
-                        current = int(match.group(1))
-                        if current > last_progress and bar:
-                            bar.update(current - last_progress)
-                            last_progress = current
-                    
-                    # Don't print verbose Hydra lines
-                    if not line.startswith('[') or 'ERROR' in line or 'found' in line.lower():
-                        click.echo(line.rstrip())
-                else:
-                    if line.strip():
-                        click.echo(line.rstrip())
+                # Mostrar línea si no es ruido
+                if line.strip() and not should_filter_line(line):
+                    click.echo(f"    {line.rstrip()}")
         
-        if bar:
-            try:
-                bar.__exit__(None, None, None)
-            except:
-                pass
-        
+        # Leer output restante
         if proc.stdout:
             remaining = proc.stdout.read()
             if remaining:
                 output_lines.append(remaining)
-                for line in remaining.splitlines():
-                    if line.strip():
-                        click.echo(line)
+                if not has_duration:
+                    for line in remaining.splitlines():
+                        if line.strip() and not should_filter_line(line):
+                            click.echo(f"    {line}")
         
         stdout = ''.join(output_lines)
         stderr = ""
@@ -445,7 +430,7 @@ def run_scenario(
             results.append(result)
             
             if result.returncode == 0:
-                click.secho(f"    [SUCCESS] Completed in {result.duration_s:.2f}s\n", fg="green")
+                click.secho(f"    [OK] Completed in {result.duration_s:.2f}s\n", fg="green")
                 logger.info(f"Run completed successfully in {result.duration_s:.2f}s")
             else:
                 click.secho(f"    [FAILED] Exit code {result.returncode}\n", fg="red")
