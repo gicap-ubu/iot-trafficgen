@@ -45,4 +45,19 @@ htmlcov/
 
 # OS
 .DS_Store
+.AppleDouble
+.LSOverride
 Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*~
+.directory
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb

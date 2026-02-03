@@ -24,7 +24,8 @@ if [[ ! -f "$WORDLIST" ]]; then
 fi
 
 WORDLIST_SIZE=$(wc -l < "$WORDLIST")
-echo "[ssh_bruteforce] Wordlist size: ${WORDLIST_SIZE} lines"
+echo "[ssh_bruteforce] Wordlist size: ${WORDLIST_SIZE} passwords"
+echo "[ssh_bruteforce] PROGRESS_TOTAL=${WORDLIST_SIZE}"
 
 read -r -a ARGS <<< "$TOOL_ARGS"
 
@@ -36,6 +37,7 @@ if ! command -v "$HYDRA_BIN" &>/dev/null; then
 fi
 
 OUTPUT_FILE="${OUT_DIR}/hydra_output.txt"
+PROGRESS_FILE="${OUT_DIR}/progress.txt"
 
 printf '[ssh_bruteforce] CMD: %s' "$HYDRA_BIN"
 printf ' -l %q' "$USERNAME"
@@ -54,10 +56,16 @@ set +e
     -s "$TARGET_PORT" \
     "${ARGS[@]}" \
     -o "$OUTPUT_FILE" \
-    "$TARGET_IP" ssh \
-    2>&1 | tee "${OUT_DIR}/hydra_stderr.log"
+    "$TARGET_IP" ssh 2>&1 | while IFS= read -r line; do
+        echo "$line" | tee -a "${OUT_DIR}/hydra_stderr.log"
+        
+        if [[ "$line" =~ \[([0-9]+)\]\[ssh\] ]]; then
+            attempt="${BASH_REMATCH[1]}"
+            echo "PROGRESS_CURRENT=${attempt}" > "$PROGRESS_FILE"
+        fi
+    done
 
-EXIT_CODE=$?
+EXIT_CODE=${PIPESTATUS[0]}
 set -e
 
 if [[ $EXIT_CODE -eq 130 ]]; then
@@ -76,5 +84,6 @@ if [[ -f "$OUTPUT_FILE" ]]; then
     fi
 fi
 
+rm -f "$PROGRESS_FILE"
 echo "[ssh_bruteforce] Completed"
 exit $EXIT_CODE

@@ -162,10 +162,15 @@ def execute_run(
         stdout = "[dry run - no output]"
         stderr = ""
     else:
-        # Check if attack has duration (for progress bar)
+        # Check if attack has duration (for time-based progress bar)
         duration_str = env.get('DURATION_SECONDS')
         has_duration = False
         duration = 0
+        
+        # Check if attack reports progress (for attempt-based progress)
+        progress_total_str = None
+        has_progress_tracking = False
+        progress_total = 0
         
         if duration_str:
             try:
@@ -184,9 +189,14 @@ def execute_run(
             ['bash', str(run.script)],
             env={**os.environ, **env},
             stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True
+            stderr=subprocess.STDOUT,
+            text=True,
+            bufsize=1
         )
+        
+        # Check for PROGRESS_TOTAL in initial output
+        progress_file = outputs_dir / "progress.txt"
+        output_lines = []
         
         if has_duration:
             # Real-time progress bar based on duration
@@ -204,16 +214,81 @@ def execute_run(
                     time.sleep(1)
                     elapsed += 1
                     bar.update(1)
+                    
+                    # Capture output
+                    if proc.stdout:
+                        line = proc.stdout.readline()
+                        if line:
+                            output_lines.append(line)
                 
                 # Fill remaining if finished early
                 if elapsed < duration and proc.poll() is not None:
                     bar.update(duration - elapsed)
         else:
-            # No progress bar, just wait for completion
-            proc.wait()
+            # Check if script reports PROGRESS_TOTAL (SSH BF style)
+            while proc.poll() is None:
+                if proc.stdout:
+                    line = proc.stdout.readline()
+                    if line:
+                        output_lines.append(line)
+                        
+                        # Detect PROGRESS_TOTAL from output
+                        if "PROGRESS_TOTAL=" in line and not has_progress_tracking:
+                            try:
+                                progress_total = int(line.split("PROGRESS_TOTAL=")[1].strip())
+                                has_progress_tracking = True
+                                click.echo(f"    Total attempts: {progress_total}")
+                                
+                                # Start progress bar
+                                with click.progressbar(
+                                    length=progress_total,
+                                    label='    Progress',
+                                    show_eta=False,
+                                    show_percent=True,
+                                    bar_template='    %(label)s [%(bar)s] %(info)s',
+                                    fill_char='━',
+                                    empty_char='─'
+                                ) as bar:
+                                    last_progress = 0
+                                    while proc.poll() is None:
+                                        time.sleep(0.5)
+                                        
+                                        # Read progress file
+                                        if progress_file.exists():
+                                            try:
+                                                with open(progress_file, 'r') as f:
+                                                    content = f.read()
+                                                    if "PROGRESS_CURRENT=" in content:
+                                                        current = int(content.split("PROGRESS_CURRENT=")[1].strip())
+                                                        if current > last_progress:
+                                                            bar.update(current - last_progress)
+                                                            last_progress = current
+                                            except (ValueError, FileNotFoundError):
+                                                pass
+                                        
+                                        # Continue capturing output
+                                        if proc.stdout:
+                                            line = proc.stdout.readline()
+                                            if line:
+                                                output_lines.append(line)
+                                break
+                            except (ValueError, IndexError):
+                                pass
+                else:
+                    time.sleep(0.1)
+            
+            # If no progress tracking, just wait
+            if not has_progress_tracking:
+                proc.wait()
         
-        # Get output
-        stdout, stderr = proc.communicate()
+        # Get remaining output
+        if proc.stdout:
+            remaining = proc.stdout.read()
+            if remaining:
+                output_lines.append(remaining)
+        
+        stdout = ''.join(output_lines)
+        stderr = ""
         returncode = proc.returncode
         
         logger.debug(f"Script exit code: {returncode}")
@@ -222,12 +297,8 @@ def execute_run(
             click.echo(stdout, nl=False)
             logger.debug(f"Script stdout: {stdout[:500]}...")
         
-        if stderr:
-            if returncode != 0:
-                click.secho(stderr, fg="yellow", nl=False)
-                logger.warning(f"Script stderr: {stderr[:500]}...")
-            else:
-                logger.debug(f"Script stderr: {stderr[:500]}...")
+        if returncode != 0:
+            logger.warning(f"Script failed with exit code {returncode}")
     
     end_time = datetime.utcnow()
     end_time_str = get_timestamp_utc()
