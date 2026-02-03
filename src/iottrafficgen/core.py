@@ -246,19 +246,17 @@ def execute_run(
                     except (ValueError, IndexError):
                         click.echo(line.rstrip())
                 elif progress_total > 0:
-                    if progress_file.exists():
-                        try:
-                            with open(progress_file, 'r') as f:
-                                content = f.read()
-                                if "PROGRESS_CURRENT=" in content:
-                                    current = int(content.split("PROGRESS_CURRENT=")[1].strip())
-                                    if current > last_progress and bar:
-                                        bar.update(current - last_progress)
-                                        last_progress = current
-                        except (ValueError, FileNotFoundError, IOError):
-                            pass
+                    # Parse [N][ssh] from Hydra output
+                    import re
+                    match = re.search(r'\[(\d+)\]\[ssh\]', line)
+                    if match:
+                        current = int(match.group(1))
+                        if current > last_progress and bar:
+                            bar.update(current - last_progress)
+                            last_progress = current
                     
-                    if not line.startswith('[') or 'PROGRESS' in line or 'ERROR' in line:
+                    # Don't print verbose Hydra lines
+                    if not line.startswith('[') or 'ERROR' in line or 'found' in line.lower():
                         click.echo(line.rstrip())
                 else:
                     if line.strip():
