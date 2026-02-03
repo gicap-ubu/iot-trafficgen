@@ -28,7 +28,8 @@ echo "[ssh_bruteforce] Wordlist size: ${WORDLIST_SIZE} lines"
 
 read -r -a ARGS <<< "$TOOL_ARGS"
 
-HYDRA_BIN="hydra"
+HYDRA_BIN=$(command -v hydra 2>/dev/null || echo "hydra")
+
 if ! command -v "$HYDRA_BIN" &>/dev/null; then
     echo "[ssh_bruteforce] ERROR: hydra not found in PATH"
     exit 1
@@ -44,6 +45,8 @@ for a in "${ARGS[@]}"; do printf ' %q' "$a"; done
 printf ' -o %q' "$OUTPUT_FILE"
 printf ' %q ssh\n' "$TARGET_IP"
 
+trap 'echo "[ssh_bruteforce] Interrupted"; exit 130' INT TERM
+
 set +e
 "$HYDRA_BIN" \
     -l "$USERNAME" \
@@ -57,19 +60,20 @@ set +e
 EXIT_CODE=$?
 set -e
 
-echo "[ssh_bruteforce] Hydra exit code: $EXIT_CODE"
+if [[ $EXIT_CODE -eq 130 ]]; then
+    echo "[ssh_bruteforce] Interrupted"
+    exit 130
+fi
+
+echo "[ssh_bruteforce] Exit code: $EXIT_CODE"
 
 if [[ -f "$OUTPUT_FILE" ]]; then
-    echo "[ssh_bruteforce] Output saved to: $OUTPUT_FILE"
-    
     if grep -qE '\[[0-9]+\]\[ssh\].*login:.*password:' "$OUTPUT_FILE"; then
-        echo "[ssh_bruteforce] SUCCESS: Valid credentials found!"
+        echo "[ssh_bruteforce] Valid credentials found"
         grep -E '\[[0-9]+\]\[ssh\].*login:.*password:' "$OUTPUT_FILE"
     else
         echo "[ssh_bruteforce] No valid credentials found"
     fi
-else
-    echo "[ssh_bruteforce] WARNING: No output file generated"
 fi
 
 echo "[ssh_bruteforce] Completed"

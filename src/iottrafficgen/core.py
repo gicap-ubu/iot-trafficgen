@@ -1,5 +1,5 @@
 """
-Core execution logic for iottrafficgen
+Core execution logic
 """
 import json
 import os
@@ -162,30 +162,59 @@ def execute_run(
         stdout = "[dry run - no output]"
         stderr = ""
     else:
-        # Show progress indicator
-        click.echo(f"\n    Executing attack...")
+        # Check if attack has duration (for progress bar)
+        duration_str = env.get('DURATION_SECONDS')
+        has_duration = False
+        duration = 0
         
-        with click.progressbar(
-            length=100,
-            label='    Progress',
-            show_eta=False,
-            show_percent=False,
-            bar_template='    %(label)s [%(bar)s] %(info)s',
-            fill_char='━',
-            empty_char='─'
-        ) as bar:
-            # Execute script
-            logger.info(f"Executing script: {run.script}")
-            result = execute_shell_script(run.script, env)
-            
-            # Simulate progress (since we can't track real progress)
-            for i in range(100):
-                bar.update(1)
-                time.sleep(0.01)
+        if duration_str:
+            try:
+                duration = int(duration_str)
+                has_duration = True
+                click.echo(f"\n    Executing attack (duration: {duration}s)...")
+            except (ValueError, TypeError):
+                click.echo(f"\n    Executing attack...")
+        else:
+            click.echo(f"\n    Executing attack...")
         
-        returncode = result.returncode
-        stdout = result.stdout
-        stderr = result.stderr
+        logger.info(f"Executing script: {run.script}")
+        
+        # Start script in background
+        proc = subprocess.Popen(
+            ['bash', str(run.script)],
+            env={**os.environ, **env},
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True
+        )
+        
+        if has_duration:
+            # Real-time progress bar based on duration
+            with click.progressbar(
+                length=duration,
+                label='    Progress',
+                show_eta=True,
+                show_percent=True,
+                bar_template='    %(label)s [%(bar)s] %(info)s',
+                fill_char='━',
+                empty_char='─'
+            ) as bar:
+                elapsed = 0
+                while proc.poll() is None and elapsed < duration:
+                    time.sleep(1)
+                    elapsed += 1
+                    bar.update(1)
+                
+                # Fill remaining if finished early
+                if elapsed < duration and proc.poll() is not None:
+                    bar.update(duration - elapsed)
+        else:
+            # No progress bar, just wait for completion
+            proc.wait()
+        
+        # Get output
+        stdout, stderr = proc.communicate()
+        returncode = proc.returncode
         
         logger.debug(f"Script exit code: {returncode}")
         

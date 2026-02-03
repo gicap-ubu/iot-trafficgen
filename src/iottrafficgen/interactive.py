@@ -1,5 +1,5 @@
 """
-Interactive menu
+Interactive menu for iottrafficgen
 """
 import sys
 from pathlib import Path
@@ -308,17 +308,29 @@ def detect_and_configure_placeholders(scenario_path: Path) -> Optional[Path]:
                 run['env']['WORDLIST'] = str(wordlist_path)
             # If just a filename (no path separators), search in known locations
             elif '/' not in wordlist_value and '\\' not in wordlist_value:
-                # Search in scripts/attacks/bruteforce/ directory
-                script_dir = scenario_path.parent.parent.parent / 'scripts' / 'attacks' / 'bruteforce'
-                candidate = script_dir / wordlist_value
-                if candidate.exists():
-                    run['env']['WORDLIST'] = str(candidate.resolve())
-                else:
-                    # If not found, leave as-is and let the script handle the error
+                # Search locations in order of priority:
+                # 1. Current working directory (where user runs the command)
+                # 2. scripts/attacks/bruteforce/ directory (bundled wordlists)
+                
+                project_root = scenario_path.parent.parent.parent
+                search_paths = [
+                    Path.cwd() / wordlist_value,  # Where user is now
+                    project_root / 'scripts' / 'attacks' / 'bruteforce' / wordlist_value,
+                ]
+                
+                found = False
+                for candidate in search_paths:
+                    if candidate.exists():
+                        run['env']['WORDLIST'] = str(candidate.resolve())
+                        found = True
+                        break
+                
+                if not found:
+                    # If not found anywhere, leave as-is and let script handle error
                     run['env']['WORDLIST'] = wordlist_value
-            # If relative path with directories, resolve from scenario directory
+            # If relative path with directories, resolve from current directory
             else:
-                absolute_wordlist = (scenario_path.parent / wordlist_path).resolve()
+                absolute_wordlist = (Path.cwd() / wordlist_path).resolve()
                 run['env']['WORDLIST'] = str(absolute_wordlist)
     
     # Replace placeholder in scenario markers

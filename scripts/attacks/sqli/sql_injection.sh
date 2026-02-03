@@ -16,10 +16,10 @@ echo "[sql_injection] TOOL_ARGS=${TOOL_ARGS}"
 echo "[sql_injection] OUT_DIR=${OUT_DIR}"
 echo "[sql_injection] SQLMAP_OUTPUT_DIR=${SQLMAP_OUTPUT_DIR}"
 
-SQLMAP_BIN="sqlmap"
+SQLMAP_BIN=$(command -v sqlmap 2>/dev/null || echo "sqlmap")
+
 if ! command -v "$SQLMAP_BIN" &>/dev/null; then
     echo "[sql_injection] ERROR: sqlmap not found in PATH"
-    echo "[sql_injection] Install: pip install sqlmap or apt install sqlmap"
     exit 1
 fi
 
@@ -27,12 +27,12 @@ read -r -a ARGS <<< "$TOOL_ARGS"
 
 OUTPUT_FILE="${OUT_DIR}/sqlmap_output.txt"
 
-printf '[sql_injection] CMD: %s' "$SQLMAP_BIN"
-printf ' -u %q' "$TARGET_URL"
-printf ' --batch'
-printf ' --output-dir %q' "$SQLMAP_OUTPUT_DIR"
+printf '[sql_injection] CMD: %s -u %q --batch --output-dir %q' \
+    "$SQLMAP_BIN" "$TARGET_URL" "$SQLMAP_OUTPUT_DIR"
 for a in "${ARGS[@]}"; do printf ' %q' "$a"; done
 printf ' > %q\n' "$OUTPUT_FILE"
+
+trap 'echo "[sql_injection] Interrupted"; exit 130' INT TERM
 
 set +e
 "$SQLMAP_BIN" \
@@ -45,22 +45,20 @@ set +e
 EXIT_CODE=$?
 set -e
 
-echo "[sql_injection] SQLMap exit code: $EXIT_CODE"
+if [[ $EXIT_CODE -eq 130 ]]; then
+    echo "[sql_injection] Interrupted"
+    exit 130
+fi
+
+echo "[sql_injection] Exit code: $EXIT_CODE"
 
 if [[ -f "$OUTPUT_FILE" ]]; then
-    echo "[sql_injection] Output saved to: $OUTPUT_FILE"
-    
-    if grep -qE "(sqlmap identified the following injection point|is vulnerable|is injectable|back-end DBMS)" "$OUTPUT_FILE"; then
-        echo "[sql_injection] SUCCESS: SQL injection vulnerability found!"
-        grep -E "(Parameter.*is vulnerable|injectable|back-end DBMS)" "$OUTPUT_FILE" | head -5
+    if grep -qE "(sqlmap identified|is vulnerable|is injectable|back-end DBMS)" "$OUTPUT_FILE"; then
+        echo "[sql_injection] SQL injection vulnerability found"
+        grep -E "(Parameter.*vulnerable|injectable|back-end DBMS)" "$OUTPUT_FILE" | head -5
     else
-        echo "[sql_injection] No SQL injection vulnerabilities found"
+        echo "[sql_injection] No vulnerabilities found"
     fi
-    
-    OUT_LINES=$(wc -l < "$OUTPUT_FILE" 2>/dev/null || echo "0")
-    echo "[sql_injection] Output lines: $OUT_LINES"
-else
-    echo "[sql_injection] WARNING: No output file generated"
 fi
 
 echo "[sql_injection] Completed"
