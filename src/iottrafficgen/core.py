@@ -254,9 +254,9 @@ def execute_run(
                     proc.wait()
             
             # Para procesos terminados por timeout, consideramos éxito (0)
+            # Códigos de señal: negativo (killed), 130 (SIGINT), 143 (SIGTERM)
             returncode = proc.returncode if proc.returncode is not None else 0
-            # Si fue terminado por señal (negativo) después del timeout, es éxito
-            if returncode < 0:
+            if returncode < 0 or returncode in (130, 143):
                 returncode = 0
         else:
             # Sin duración: mostrar output en tiempo real, filtrado
