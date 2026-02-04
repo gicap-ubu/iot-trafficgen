@@ -262,13 +262,16 @@ def execute_run(
         
         # Leer output restante
         if proc.stdout:
-            remaining = proc.stdout.read()
-            if remaining:
-                output_lines.append(remaining)
-                if not has_duration:
-                    for line in remaining.splitlines():
-                        if line.strip() and not should_filter_line(line):
-                            click.echo(f"    {line}")
+            try:
+                remaining = proc.stdout.read()
+                if remaining:
+                    output_lines.append(remaining)
+                    if not has_duration:
+                        for line in remaining.splitlines():
+                            if line.strip() and not should_filter_line(line):
+                                click.echo(f"    {line}")
+            except (IOError, BlockingIOError, TypeError):
+                pass
         
         stdout = ''.join(output_lines)
         stderr = ""
