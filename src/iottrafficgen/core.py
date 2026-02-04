@@ -252,12 +252,6 @@ def execute_run(
                 except subprocess.TimeoutExpired:
                     proc.kill()
                     proc.wait()
-            
-            # Para procesos terminados por timeout, consideramos éxito (0)
-            # Códigos de señal: negativo (killed), 130 (SIGINT), 143 (SIGTERM)
-            returncode = proc.returncode if proc.returncode is not None else 0
-            if returncode < 0 or returncode in (130, 143):
-                returncode = 0
         else:
             # Sin duración: mostrar output en tiempo real, filtrado
             while proc.poll() is None:
@@ -292,8 +286,13 @@ def execute_run(
         stdout = ''.join(output_lines)
         stderr = ""
         
-        # Solo asignar returncode si no fue ya asignado (caso timeout)
-        if not has_duration:
+        # Obtener returncode del proceso
+        if has_duration:
+            returncode = proc.returncode if proc.returncode is not None else 0
+            # Para timeout, códigos de señal son éxito: negativo, 130 (SIGINT), 143 (SIGTERM)
+            if returncode < 0 or returncode in (130, 143):
+                returncode = 0
+        else:
             returncode = proc.returncode if proc.returncode is not None else 0
         
         logger.debug(f"Script exit code: {returncode}")
