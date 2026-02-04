@@ -1,6 +1,7 @@
 """
 Core execution logic
 """
+import fcntl
 import json
 import os
 import re
@@ -206,7 +207,12 @@ def execute_run(
         output_lines = []
         
         if has_duration:
-            # Con duración conocida: mostrar barra de progreso basada en tiempo
+            # Configurar stdout como no bloqueante
+            if proc.stdout:
+                fd = proc.stdout.fileno()
+                fl = fcntl.fcntl(fd, fcntl.F_GETFL)
+                fcntl.fcntl(fd, fcntl.F_SETFL, fl | os.O_NONBLOCK)
+            
             with click.progressbar(
                 length=duration_secs,
                 label='    Progress',
@@ -224,11 +230,14 @@ def execute_run(
                     
                     # Leer output disponible sin bloquear
                     if proc.stdout:
-                        while True:
-                            line = proc.stdout.readline()
-                            if not line:
-                                break
-                            output_lines.append(line)
+                        try:
+                            while True:
+                                line = proc.stdout.readline()
+                                if not line:
+                                    break
+                                output_lines.append(line)
+                        except (IOError, BlockingIOError):
+                            pass
                 
                 # Si terminó antes, completar la barra
                 if elapsed < duration_secs and proc.poll() is not None:
