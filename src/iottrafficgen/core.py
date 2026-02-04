@@ -205,6 +205,7 @@ def execute_run(
         )
         
         output_lines = []
+        returncode = 0
         
         if has_duration:
             # Configurar stdout como no bloqueante
@@ -242,6 +243,21 @@ def execute_run(
                 # Si terminó antes, completar la barra
                 if elapsed < duration_secs and proc.poll() is not None:
                     bar.update(duration_secs - elapsed)
+            
+            # Terminar proceso si sigue corriendo después del timeout
+            if proc.poll() is None:
+                proc.terminate()
+                try:
+                    proc.wait(timeout=5)
+                except subprocess.TimeoutExpired:
+                    proc.kill()
+                    proc.wait()
+            
+            # Para procesos terminados por timeout, consideramos éxito (0)
+            returncode = proc.returncode if proc.returncode is not None else 0
+            # Si fue terminado por señal (negativo) después del timeout, es éxito
+            if returncode < 0:
+                returncode = 0
         else:
             # Sin duración: mostrar output en tiempo real, filtrado
             while proc.poll() is None:
@@ -275,7 +291,10 @@ def execute_run(
         
         stdout = ''.join(output_lines)
         stderr = ""
-        returncode = proc.returncode
+        
+        # Solo asignar returncode si no fue ya asignado (caso timeout)
+        if not has_duration:
+            returncode = proc.returncode if proc.returncode is not None else 0
         
         logger.debug(f"Script exit code: {returncode}")
         
