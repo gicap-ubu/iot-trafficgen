@@ -202,9 +202,6 @@ def show_benign_submenu(workspace: Path) -> Optional[list]:
         return [(scenario_path.stem, scenario_path, description)]
 
 
-    print(f"{Fore.CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━{Style.RESET_ALL}")
-
-
 def get_input(prompt: str, valid_range: range) -> int:
     """Get validated integer input from user."""
     while True:
@@ -283,6 +280,9 @@ def detect_and_configure_placeholders(scenario_path: Path) -> Optional[Path]:
     Detect placeholders in scenario and prompt for configuration.
     Creates a temporary configured YAML file.
     
+    Placeholders can have default values in the original YAML.
+    If user presses Enter without typing, the default is used.
+    
     Returns:
         Path to configured temporary YAML, or None if user cancels
     """
@@ -297,99 +297,140 @@ def detect_and_configure_placeholders(scenario_path: Path) -> Optional[Path]:
         return None
     
     placeholders = {}
+    defaults = {}
     
+    # Extract placeholders and their default values from env
     if 'runs' in data:
         for run in data['runs']:
             if 'env' in run:
                 for key, value in run['env'].items():
                     if isinstance(value, str) and '_PLACEHOLDER' in value:
                         placeholders[key] = value
+                        # Extract default value (everything before _PLACEHOLDER)
+                        default_val = value.replace('_PLACEHOLDER', '').strip()
+                        if default_val:
+                            defaults[key] = default_val
+                    elif isinstance(value, str) and key not in placeholders:
+                        # Non-placeholder values are defaults (available for reference)
+                        defaults[key] = value
     
+    # Check for marker host placeholder
     if 'scenario' in data and 'markers' in data['scenario']:
         markers = data['scenario']['markers']
         if 'host' in markers and isinstance(markers['host'], str) and '_PLACEHOLDER' in markers['host']:
             placeholders['MARKER_HOST'] = markers['host']
+            default_val = markers['host'].replace('_PLACEHOLDER', '').strip()
+            if default_val:
+                defaults['MARKER_HOST'] = default_val
     
     if not placeholders:
         return scenario_path
     
-    print(f"{Fore.YELLOW}Configuration required:{Style.RESET_ALL}\n")
+    # Prompt user for values
+    print(f"\n{Fore.YELLOW}Configuration Required{Style.RESET_ALL}")
+    print(f"{Fore.CYAN}{'─' * 60}{Style.RESET_ALL}")
+    print(f"Press {Fore.GREEN}Enter{Style.RESET_ALL} to use default values shown in {Fore.CYAN}[brackets]{Style.RESET_ALL}\n")
     
-    configured_values = {}
-    for key, placeholder in placeholders.items():
+    user_values = {}
+    
+    for key in sorted(placeholders.keys()):
+        default = defaults.get(key, '')
+        
+        if default:
+            prompt = f"{Fore.GREEN}{key}{Style.RESET_ALL} [{Fore.CYAN}{default}{Style.RESET_ALL}]: "
+        else:
+            prompt = f"{Fore.GREEN}{key}{Style.RESET_ALL} (required): "
+        
         while True:
-            try:
-                print(f"{Fore.CYAN}  {key}:{Style.RESET_ALL} ", end="")
-                value = input().strip()
-                
-                if not value:
-                    print(f"{Fore.RED}  Value cannot be empty. Please try again.{Style.RESET_ALL}")
-                    continue
-                
-                configured_values[key] = value
-                break
-            except KeyboardInterrupt:
-                print(f"\n{Fore.YELLOW}Configuration cancelled.{Style.RESET_ALL}")
-                return None
-    
-    for run in data['runs']:
-        if 'env' in run:
-            for key, value in configured_values.items():
-                if key in run['env']:
-                    run['env'][key] = value
-        
-        if 'script' in run:
-            script_path = Path(run['script'])
-            if not script_path.is_absolute():
-                absolute_script = (scenario_path.parent / script_path).resolve()
-                run['script'] = str(absolute_script)
-        
-        if 'profile' in run:
-            profile_path = Path(run['profile'])
-            if not profile_path.is_absolute():
-                absolute_profile = (scenario_path.parent / profile_path).resolve()
-                run['profile'] = str(absolute_profile)
-        
-        if 'env' in run and 'WORDLIST' in run['env']:
-            wordlist_value = run['env']['WORDLIST']
-            wordlist_path = Path(wordlist_value)
+            user_input = input(prompt).strip()
             
-            if wordlist_path.is_absolute():
-                run['env']['WORDLIST'] = str(wordlist_path)
-            elif '/' not in wordlist_value and '\\' not in wordlist_value:
-                project_root = scenario_path.parent.parent.parent
-                search_paths = [
-                    Path.cwd() / wordlist_value,
-                    project_root / 'scripts' / 'attacks' / 'bruteforce' / wordlist_value,
-                ]
-                
-                found = False
-                for candidate in search_paths:
-                    if candidate.exists():
-                        run['env']['WORDLIST'] = str(candidate.resolve())
-                        found = True
-                        break
-                
-                if not found:
-                    run['env']['WORDLIST'] = wordlist_value
+            # If empty and there's a default, use it
+            if not user_input and default:
+                user_values[key] = default
+                print(f"  → Using default: {Fore.CYAN}{default}{Style.RESET_ALL}")
+                break
+            # If empty and no default, require input
+            elif not user_input and not default:
+                print(f"  {Fore.RED}This value is required{Style.RESET_ALL}")
+                continue
+            # Use what user typed
             else:
-                absolute_wordlist = (Path.cwd() / wordlist_path).resolve()
-                run['env']['WORDLIST'] = str(absolute_wordlist)
+                user_values[key] = user_input
+                break
     
-    if 'MARKER_HOST' in configured_values:
-        if 'scenario' not in data:
-            data['scenario'] = {}
-        if 'markers' not in data['scenario']:
-            data['scenario']['markers'] = {}
-        data['scenario']['markers']['host'] = configured_values['MARKER_HOST']
-    
-    temp_fd, temp_path = tempfile.mkstemp(suffix='.yaml', prefix='iottrafficgen_')
+    # Create temporary configured YAML
     try:
-        with open(temp_path, 'w', encoding='utf-8') as f:
+        # Replace placeholders in env
+        if 'runs' in data:
+            for run in data['runs']:
+                if 'env' in run:
+                    for key, value in run['env'].items():
+                        if key in user_values:
+                            run['env'][key] = user_values[key]
+                
+                # Resolve relative script paths to absolute
+                if 'script' in run:
+                    script_path = Path(run['script'])
+                    if not script_path.is_absolute():
+                        absolute_script = (scenario_path.parent / script_path).resolve()
+                        run['script'] = str(absolute_script)
+                
+                # Resolve relative profile paths to absolute
+                if 'profile' in run:
+                    profile_path = Path(run['profile'])
+                    if not profile_path.is_absolute():
+                        absolute_profile = (scenario_path.parent / profile_path).resolve()
+                        run['profile'] = str(absolute_profile)
+                
+                # Special handling for WORDLIST paths
+                if 'env' in run and 'WORDLIST' in run['env']:
+                    wordlist_value = run['env']['WORDLIST']
+                    wordlist_path = Path(wordlist_value)
+                    
+                    if wordlist_path.is_absolute():
+                        run['env']['WORDLIST'] = str(wordlist_path)
+                    elif '/' not in wordlist_value and '\\' not in wordlist_value:
+                        project_root = scenario_path.parent.parent.parent
+                        search_paths = [
+                            Path.cwd() / wordlist_value,
+                            project_root / 'scripts' / 'attacks' / 'bruteforce' / wordlist_value,
+                        ]
+                        
+                        found = False
+                        for candidate in search_paths:
+                            if candidate.exists():
+                                run['env']['WORDLIST'] = str(candidate.resolve())
+                                found = True
+                                break
+                        
+                        if not found:
+                            run['env']['WORDLIST'] = wordlist_value
+                    else:
+                        absolute_wordlist = (Path.cwd() / wordlist_path).resolve()
+                        run['env']['WORDLIST'] = str(absolute_wordlist)
+        
+        # Replace marker host placeholder
+        if 'MARKER_HOST' in user_values:
+            if 'scenario' not in data:
+                data['scenario'] = {}
+            if 'markers' not in data['scenario']:
+                data['scenario']['markers'] = {}
+            data['scenario']['markers']['host'] = user_values['MARKER_HOST']
+        
+        # Create temporary file
+        temp_fd, temp_path = tempfile.mkstemp(suffix='.yaml', prefix='iottrafficgen_')
+        temp_file = Path(temp_path)
+        
+        with open(temp_file, 'w', encoding='utf-8') as f:
             yaml.dump(data, f, default_flow_style=False, sort_keys=False)
-        return Path(temp_path)
+        
+        print(f"\n{Fore.GREEN}✓{Style.RESET_ALL} Configuration complete")
+        print(f"{Fore.CYAN}{'─' * 60}{Style.RESET_ALL}\n")
+        
+        return temp_file
+        
     except Exception as e:
-        print(f"{Fore.RED}Error creating temporary file: {e}{Style.RESET_ALL}")
+        print(f"{Fore.RED}Error creating configured scenario: {e}{Style.RESET_ALL}")
         return None
 
 

@@ -13,9 +13,12 @@ runs:
     script: "../../scripts/benign/MQTT_Bridge.py"
     
     env:
+      # Required: Database host
+      DB_HOST: "192.168.1.20_PLACEHOLDER"  # Database server IP address
+      
+      # Optional: Can be customized if using different credentials/config
       MQTT_BROKER: "localhost"
-      MQTT_TOPIC: "planta/#"
-      DB_HOST: "DB_HOST_PLACEHOLDER"
-      DB_USER: "admin_iot"
-      DB_PASSWORD: "secreto"
+      MQTT_TOPIC: "sensor/#"
+      DB_USER: "admin"
+      DB_PASSWORD: "your_password"
       DB_NAME: "iot_db"

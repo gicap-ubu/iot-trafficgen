@@ -14,8 +14,11 @@ runs:
     profile: "../../profiles/benign/profile_01.yaml"
     
     env:
-      BROKER_IP: "BROKER_IP_PLACEHOLDER"
-      WEB_SERVER_IP: "WEB_SERVER_IP_PLACEHOLDER"
-      BASE_IP: "192.168.8"
+      # Required: User must configure these for their network
+      BROKER_IP: "192.168.1.10_PLACEHOLDER"      # MQTT broker IP address
+      WEB_SERVER_IP: "192.168.1.20_PLACEHOLDER"  # Web server IP address
+      
+      # Optional: Can be customized for different network ranges
+      BASE_IP: "192.168.1"
       RANGE_START: "150"
       RANGE_END: "179"
