@@ -1,0 +1,21 @@
+scenario:
+  name: "IoT Device Swarm"
+  description: "Generates traffic from 30 simulated IoT sensors using virtual IP addresses"
+  category: "benign"
+  
+  markers:
+    enabled: false
+
+runs:
+  - id: "device_swarm"
+    type: "benign"
+    label: "IOT_DEVICE_SWARM"
+    script: "../../scripts/benign/IoT_DeviceSwarm.py"
+    profile: "../../profiles/benign/profile_01.yaml"
+    
+    env:
+      BROKER_IP: "BROKER_IP_PLACEHOLDER"
+      WEB_SERVER_IP: "WEB_SERVER_IP_PLACEHOLDER"
+      BASE_IP: "192.168.8"
+      RANGE_START: "150"
+      RANGE_END: "179"

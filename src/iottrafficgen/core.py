@@ -35,7 +35,6 @@ from .utils import (
     validate_scenario_schema,
 )
 
-# Patrones de líneas a filtrar del output
 NOISE_PATTERNS = [
     r'https?://github\.com',
     r'^\s*$',
@@ -47,6 +46,26 @@ def should_filter_line(line: str) -> bool:
         if re.search(pattern, line, re.IGNORECASE):
             return True
     return False
+
+
+def get_script_command(script_path: Path) -> list[str]:
+    """
+    Determine the appropriate command to execute a script based on its extension.
+    
+    Args:
+        script_path: Path to the script file
+        
+    Returns:
+        List of command arguments
+    """
+    suffix = script_path.suffix.lower()
+    
+    if suffix == '.py':
+        return ['python3', str(script_path)]
+    elif suffix in ('.sh', '.bash'):
+        return ['bash', str(script_path)]
+    else:
+        return ['bash', str(script_path)]
 
 
 def load_scenario(scenario_path: Path) -> Scenario:
@@ -150,15 +169,19 @@ def execute_run(
     
     logger.debug(f"Environment variables: {json.dumps(env, indent=2)}")
     
+    is_benign = run.run_type == "benign"
+    start_event = "BENIGN_START" if is_benign else "ATTACK_START"
+    end_event = "BENIGN_END" if is_benign else "ATTACK_END"
+    
     marker_metadata = {
         "target_ip": env.get("TARGET_IP"),
         "run_type": run.run_type,
         "label": run.label,
     }
     
-    logger.info("Sending ATTACK_START marker")
+    logger.info(f"Sending {start_event} marker")
     marker_system.send(
-        event="ATTACK_START",
+        event=start_event,
         attack_id=run_id_unique,
         attack_name=run.label or run.id,
         metadata=marker_metadata,
@@ -174,7 +197,6 @@ def execute_run(
         stdout = "[dry run - no output]"
         stderr = ""
     else:
-        # Check if we have a known duration
         duration_str = env.get('DURATION_SECONDS')
         has_duration = False
         duration_secs = 0
@@ -195,8 +217,13 @@ def execute_run(
         
         logger.info(f"Executing script: {run.script}")
         
+        script_path = Path(run.script)
+        cmd = get_script_command(script_path)
+        
+        logger.debug(f"Command: {' '.join(cmd)}")
+        
         proc = subprocess.Popen(
-            ['bash', str(run.script)],
+            cmd,
             env={**os.environ, **env},
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
@@ -208,7 +235,6 @@ def execute_run(
         returncode = 0
         
         if has_duration:
-            # Configurar stdout como no bloqueante
             if proc.stdout:
                 fd = proc.stdout.fileno()
                 fl = fcntl.fcntl(fd, fcntl.F_GETFL)
@@ -219,17 +245,17 @@ def execute_run(
                 label='    Progress',
                 show_eta=True,
                 show_percent=True,
-                bar_template='    %(label)s [%(bar)s] %(info)s',
-                fill_char='━',
-                empty_char='─'
             ) as bar:
-                elapsed = 0
-                while proc.poll() is None and elapsed < duration_secs:
+                start = time.time()
+                while True:
+                    elapsed = int(time.time() - start)
+                    if elapsed >= duration_secs:
+                        break
+                    if proc.poll() is not None:
+                        break
+                    bar.update(min(1, duration_secs - elapsed))
                     time.sleep(1)
-                    elapsed += 1
-                    bar.update(1)
                     
-                    # Leer output disponible sin bloquear
                     if proc.stdout:
                         try:
                             while True:
@@ -240,11 +266,9 @@ def execute_run(
                         except (IOError, BlockingIOError):
                             pass
                 
-                # Si terminó antes, completar la barra
                 if elapsed < duration_secs and proc.poll() is not None:
                     bar.update(duration_secs - elapsed)
             
-            # Terminar proceso si sigue corriendo después del timeout
             if proc.poll() is None:
                 proc.terminate()
                 try:
@@ -253,7 +277,6 @@ def execute_run(
                     proc.kill()
                     proc.wait()
         else:
-            # Sin duración: mostrar output en tiempo real, filtrado
             while proc.poll() is None:
                 if not proc.stdout:
                     time.sleep(0.1)
@@ -266,11 +289,9 @@ def execute_run(
                 
                 output_lines.append(line)
                 
-                # Mostrar línea si no es ruido
                 if line.strip() and not should_filter_line(line):
                     click.echo(f"    {line.rstrip()}")
         
-        # Leer output restante
         if proc.stdout:
             try:
                 remaining = proc.stdout.read()
@@ -286,10 +307,8 @@ def execute_run(
         stdout = ''.join(output_lines)
         stderr = ""
         
-        # Obtener returncode del proceso
         if has_duration:
             returncode = proc.returncode if proc.returncode is not None else 0
-            # Para timeout, códigos de señal son éxito: negativo, 130 (SIGINT), 143 (SIGTERM)
             if returncode < 0 or returncode in (130, 143):
                 returncode = 0
         else:
@@ -311,9 +330,9 @@ def execute_run(
         "duration_s": duration,
     })
     
-    logger.info("Sending ATTACK_END marker")
+    logger.info(f"Sending {end_event} marker")
     marker_system.send(
-        event="ATTACK_END",
+        event=end_event,
         attack_id=run_id_unique,
         attack_name=run.label or run.id,
         metadata=marker_metadata,
@@ -337,6 +356,12 @@ def execute_run(
 
 
 def save_run_metadata(run: Run, result: RunResult, run_dir: Path) -> None:
+    """
+    Save run metadata with enriched information for benign traffic.
+    
+    For benign runs, extracts device count, infrastructure configuration,
+    and protocol information from environment variables.
+    """
     logger = get_logger()
     
     metadata = {
@@ -357,6 +382,45 @@ def save_run_metadata(run: Run, result: RunResult, run_dir: Path) -> None:
         "env_effective": result.env_effective,
         "outputs_dir": str(result.outputs_dir),
     }
+    
+    if run.run_type == "benign":
+        env = result.env_effective
+        benign_config = {
+            "device_count": None,
+            "device_range": None,
+            "base_ip": env.get("BASE_IP"),
+            "protocols": [],
+            "infrastructure": {},
+        }
+        
+        if "RANGE_START" in env and "RANGE_END" in env:
+            try:
+                start = int(env["RANGE_START"])
+                end = int(env["RANGE_END"])
+                benign_config["device_count"] = end - start + 1
+                benign_config["device_range"] = f"{start}-{end}"
+            except (ValueError, TypeError):
+                pass
+        
+        if "BROKER_IP" in env:
+            benign_config["infrastructure"]["mqtt_broker"] = env["BROKER_IP"]
+        if "WEB_SERVER_IP" in env:
+            benign_config["infrastructure"]["web_server"] = env["WEB_SERVER_IP"]
+        if "DB_HOST" in env:
+            benign_config["infrastructure"]["database"] = env["DB_HOST"]
+        
+        script_name = str(run.script).lower()
+        
+        if "mqtt" in script_name or "BROKER_IP" in env:
+            benign_config["protocols"].append("mqtt")
+        
+        if "http" in script_name or "WEB_SERVER_IP" in env:
+            benign_config["protocols"].append("http")
+        
+        if "udp" in script_name or "swarm" in script_name.lower() or "device" in script_name.lower():
+            benign_config["protocols"].append("udp")
+        
+        metadata["benign_config"] = benign_config
     
     metadata_file = run_dir / "run_metadata.json"
     with open(metadata_file, "w", encoding="utf-8") as f:

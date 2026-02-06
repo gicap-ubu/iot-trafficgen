@@ -1,0 +1,3 @@
+name: "IoT Lab Baseline Profile"
+description: "Original lab configuration: 30 sensors, 3-6s interval, mixed protocols (MQTT/HTTP/UDP)"
+tool_args: ""

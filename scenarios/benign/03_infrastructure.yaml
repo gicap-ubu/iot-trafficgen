@@ -1,0 +1,18 @@
+scenario:
+  name: "Infrastructure Setup"
+  description: "Verify and check web server and database services configuration"
+  category: "benign"
+  
+  markers:
+    enabled: false
+
+runs:
+  - id: "infrastructure_check"
+    type: "benign"
+    label: "INFRASTRUCTURE_CHECK"
+    script: "../../scripts/benign/check_infrastructure.sh"
+    
+    env:
+      DB_USER: "admin_iot"
+      DB_PASSWORD: "secreto"
+      DB_NAME: "iot_db"

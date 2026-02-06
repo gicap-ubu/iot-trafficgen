@@ -1,6 +1,4 @@
-"""
-Command-line interface for iottrafficgen
-"""
+"""IoT Benign & Attack Traffic Generator"""
 import sys
 from pathlib import Path
 import click
@@ -19,11 +17,11 @@ init(autoreset=True)
 @click.version_option(version=__version__, prog_name="iottrafficgen")
 def main():
     """
-    IoT Attack Traffic Generator (IoT ATG)
+    IoT Benign & Attack Traffic Generator (IoT B_ATG)
     
-    A professional framework for generating reproducible IoT attack traffic 
-    patterns in controlled laboratory environments for cybersecurity research 
-    and dataset creation.
+    A professional framework for generating reproducible IoT traffic patterns
+    (benign and attack) in controlled laboratory environments for cybersecurity 
+    research and dataset creation.
     
     Features:
       - 63 pre-configured attack scenarios across 7 categories
