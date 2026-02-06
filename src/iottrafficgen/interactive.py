@@ -296,34 +296,34 @@ def detect_and_configure_placeholders(scenario_path: Path) -> Optional[Path]:
         print(f"{Fore.RED}Error reading scenario: {e}{Style.RESET_ALL}")
         return None
     
-    placeholders = {}
+    env_vars = {}
     defaults = {}
     
-    # Extract placeholders and their default values from env
+    # Extract ALL environment variables from runs
     if 'runs' in data:
         for run in data['runs']:
             if 'env' in run:
                 for key, value in run['env'].items():
-                    if isinstance(value, str) and '_PLACEHOLDER' in value:
-                        placeholders[key] = value
-                        # Extract default value (everything before _PLACEHOLDER)
-                        default_val = value.replace('_PLACEHOLDER', '').strip()
-                        if default_val:
-                            defaults[key] = default_val
-                    elif isinstance(value, str) and key not in placeholders:
-                        # Non-placeholder values are defaults (available for reference)
-                        defaults[key] = value
+                    if isinstance(value, str):
+                        env_vars[key] = value
+                        # Extract default value
+                        if '_PLACEHOLDER' in value:
+                            # Remove _PLACEHOLDER suffix to get default
+                            default_val = value.replace('_PLACEHOLDER', '').strip()
+                            defaults[key] = default_val if default_val else ''
+                        else:
+                            # Value itself is the default
+                            defaults[key] = value
     
     # Check for marker host placeholder
     if 'scenario' in data and 'markers' in data['scenario']:
         markers = data['scenario']['markers']
         if 'host' in markers and isinstance(markers['host'], str) and '_PLACEHOLDER' in markers['host']:
-            placeholders['MARKER_HOST'] = markers['host']
+            env_vars['MARKER_HOST'] = markers['host']
             default_val = markers['host'].replace('_PLACEHOLDER', '').strip()
-            if default_val:
-                defaults['MARKER_HOST'] = default_val
+            defaults['MARKER_HOST'] = default_val if default_val else ''
     
-    if not placeholders:
+    if not env_vars:
         return scenario_path
     
     # Prompt user for values
@@ -333,7 +333,7 @@ def detect_and_configure_placeholders(scenario_path: Path) -> Optional[Path]:
     
     user_values = {}
     
-    for key in sorted(placeholders.keys()):
+    for key in sorted(env_vars.keys()):
         default = defaults.get(key, '')
         
         if default:
@@ -341,22 +341,24 @@ def detect_and_configure_placeholders(scenario_path: Path) -> Optional[Path]:
         else:
             prompt = f"{Fore.GREEN}{key}{Style.RESET_ALL} (required): "
         
-        while True:
-            user_input = input(prompt).strip()
-            
-            # If empty and there's a default, use it
-            if not user_input and default:
-                user_values[key] = default
-                print(f"  → Using default: {Fore.CYAN}{default}{Style.RESET_ALL}")
-                break
-            # If empty and no default, require input
-            elif not user_input and not default:
-                print(f"  {Fore.RED}This value is required{Style.RESET_ALL}")
-                continue
-            # Use what user typed
-            else:
-                user_values[key] = user_input
-                break
+        user_input = input(prompt).strip()
+        
+        # If empty and there's a default, use it
+        if not user_input and default:
+            user_values[key] = default
+            print(f"  → Using default: {Fore.CYAN}{default}{Style.RESET_ALL}")
+        # If empty and no default, require input
+        elif not user_input and not default:
+            print(f"  {Fore.RED}This value is required{Style.RESET_ALL}")
+            # Re-prompt for this key
+            while not user_input:
+                user_input = input(prompt).strip()
+                if not user_input:
+                    print(f"  {Fore.RED}This value is required{Style.RESET_ALL}")
+            user_values[key] = user_input
+        # Use what user typed
+        else:
+            user_values[key] = user_input
     
     # Create temporary configured YAML
     try:
