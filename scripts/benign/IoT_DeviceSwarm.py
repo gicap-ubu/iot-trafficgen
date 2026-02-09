@@ -10,6 +10,10 @@ Environment Variables:
     RANGE_START: First device ID (default: 150)
     RANGE_END: Last device ID (default: 179)
     DURATION_SECONDS: How long to run (optional, runs indefinitely if not set)
+
+Prerequisites:
+    Virtual IP addresses must be configured before running this script.
+    See LAB_CONFIG_EXAMPLES.md for setup instructions.
 """
 from __future__ import annotations
 
@@ -44,6 +48,7 @@ try:
     HAS_MQTT = True
 except ImportError:
     mqtt = None  # type: ignore[assignment]
+    HAS_MQTT = False
     print("[WARNING] paho-mqtt library not installed. MQTT traffic will be disabled.")
 
 BROKER_IP: Optional[str] = os.environ.get('BROKER_IP')
@@ -61,9 +66,9 @@ if duration_str:
         pass
 
 if not BROKER_IP:
-    sys.exit("[ERROR] BROKER_IP environment variable is required")
+    sys.exit("[iot_swarm] ERROR: BROKER_IP environment variable is required")
 if not WEB_SERVER_IP:
-    sys.exit("[ERROR] WEB_SERVER_IP environment variable is required")
+    sys.exit("[iot_swarm] ERROR: WEB_SERVER_IP environment variable is required")
 
 BROKER_IP_VALIDATED: str = BROKER_IP
 WEB_SERVER_IP_VALIDATED: str = WEB_SERVER_IP
@@ -118,8 +123,10 @@ class IotDevice(threading.Thread):
         if not HAS_MQTT or mqtt is None:
             return
 
-        client = mqtt.Client(client_id=f"Dev_{self.dev_id}_{random.randint(1000, 9999)}")
         try:
+            # Use v1 API for maximum compatibility
+            # (Suppresses deprecation warning - will be shown during execution anyway)
+            client = mqtt.Client(client_id=f"Dev_{self.dev_id}_{random.randint(1000, 9999)}")
             client.connect(BROKER_IP_VALIDATED, 1883, 60, bind_address=self.ip)
 
             payload = {
@@ -198,8 +205,8 @@ class IotDevice(threading.Thread):
 
 
 if __name__ == "__main__":
-    if os.geteuid() != 0:
-        sys.exit("[iot_swarm] ERROR: Root privileges required (use sudo)")
+    # Note: This script binds to virtual IP addresses.
+    # Ensure these IPs are configured before running (see LAB_CONFIG_EXAMPLES.md)
 
     device_count = RANGE_END - RANGE_START + 1
 

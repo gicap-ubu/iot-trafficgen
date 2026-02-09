@@ -5,6 +5,7 @@ import fcntl
 import json
 import os
 import re
+import signal
 import subprocess
 import time
 from datetime import datetime
@@ -212,7 +213,7 @@ def execute_run(
         if has_duration:
             click.echo(f"    Executing (duration: {duration_secs}s)...")
         else:
-            click.echo(f"    Executing...")
+            click.echo(f"    Executing... (Press Ctrl+C to stop)")
         click.echo()
         
         logger.info(f"Executing script: {run.script}")
@@ -233,82 +234,119 @@ def execute_run(
         
         output_lines = []
         returncode = 0
+        user_interrupted = False
         
-        if has_duration:
-            if proc.stdout:
-                fd = proc.stdout.fileno()
-                fl = fcntl.fcntl(fd, fcntl.F_GETFL)
-                fcntl.fcntl(fd, fcntl.F_SETFL, fl | os.O_NONBLOCK)
-            
-            with click.progressbar(
-                length=duration_secs,
-                label='    Progress',
-                show_eta=True,
-                show_percent=True,
-            ) as bar:
-                start = time.time()
-                while True:
-                    elapsed = int(time.time() - start)
-                    if elapsed >= duration_secs:
-                        break
-                    if proc.poll() is not None:
-                        break
-                    bar.update(min(1, duration_secs - elapsed))
-                    time.sleep(1)
-                    
-                    if proc.stdout:
-                        try:
-                            while True:
-                                line = proc.stdout.readline()
-                                if not line:
-                                    break
-                                output_lines.append(line)
-                        except (IOError, BlockingIOError):
-                            pass
-                
-                if elapsed < duration_secs and proc.poll() is not None:
-                    bar.update(duration_secs - elapsed)
-            
+        # Setup signal handler for user Ctrl+C
+        def handle_sigint(signum, frame):
+            nonlocal user_interrupted
+            user_interrupted = True
+            logger.info("User pressed Ctrl+C, forwarding to script...")
             if proc.poll() is None:
-                proc.terminate()
+                proc.send_signal(signal.SIGINT)
+        
+        # Register signal handler
+        old_handler = signal.signal(signal.SIGINT, handle_sigint)
+        
+        try:
+            if has_duration:
+                if proc.stdout:
+                    fd = proc.stdout.fileno()
+                    fl = fcntl.fcntl(fd, fcntl.F_GETFL)
+                    fcntl.fcntl(fd, fcntl.F_SETFL, fl | os.O_NONBLOCK)
+                
+                with click.progressbar(
+                    length=duration_secs,
+                    label='    Progress',
+                    show_eta=True,
+                    show_percent=True,
+                ) as bar:
+                    start = time.time()
+                    while True:
+                        elapsed = int(time.time() - start)
+                        if elapsed >= duration_secs:
+                            break
+                        if proc.poll() is not None:
+                            break
+                        if user_interrupted:
+                            break
+                        bar.update(min(1, duration_secs - elapsed))
+                        time.sleep(1)
+                        
+                        if proc.stdout:
+                            try:
+                                while True:
+                                    line = proc.stdout.readline()
+                                    if not line:
+                                        break
+                                    output_lines.append(line)
+                            except (IOError, BlockingIOError):
+                                pass
+                    
+                    if elapsed < duration_secs and proc.poll() is not None:
+                        bar.update(duration_secs - elapsed)
+                
+                # If duration expired (not user interrupt), send SIGINT
+                if not user_interrupted and proc.poll() is None:
+                    logger.info("Duration expired, sending SIGINT for graceful shutdown...")
+                    proc.send_signal(signal.SIGINT)
+                    try:
+                        proc.wait(timeout=10)
+                        logger.info("Script completed graceful shutdown")
+                    except subprocess.TimeoutExpired:
+                        logger.warning("Script did not respond to SIGINT, forcing termination")
+                        proc.kill()
+                        proc.wait()
+            else:
+                # No duration - run until user stops or script finishes
+                while proc.poll() is None:
+                    if user_interrupted:
+                        break
+                        
+                    if not proc.stdout:
+                        time.sleep(0.1)
+                        continue
+                        
+                    line = proc.stdout.readline()
+                    if not line:
+                        time.sleep(0.1)
+                        continue
+                    
+                    output_lines.append(line)
+                    
+                    if line.strip() and not should_filter_line(line):
+                        click.echo(f"    {line.rstrip()}")
+            
+            # Wait for process to finish gracefully
+            if proc.poll() is None:
                 try:
-                    proc.wait(timeout=5)
+                    proc.wait(timeout=10)
                 except subprocess.TimeoutExpired:
+                    logger.warning("Script did not finish in time, forcing termination")
                     proc.kill()
                     proc.wait()
-        else:
-            while proc.poll() is None:
-                if not proc.stdout:
-                    time.sleep(0.1)
-                    continue
-                    
-                line = proc.stdout.readline()
-                if not line:
-                    time.sleep(0.1)
-                    continue
-                
-                output_lines.append(line)
-                
-                if line.strip() and not should_filter_line(line):
-                    click.echo(f"    {line.rstrip()}")
-        
-        if proc.stdout:
-            try:
-                remaining = proc.stdout.read()
-                if remaining:
-                    output_lines.append(remaining)
-                    if not has_duration:
-                        for line in remaining.splitlines():
-                            if line.strip() and not should_filter_line(line):
-                                click.echo(f"    {line}")
-            except (IOError, BlockingIOError, TypeError):
-                pass
+            
+            if proc.stdout:
+                try:
+                    remaining = proc.stdout.read()
+                    if remaining:
+                        output_lines.append(remaining)
+                        if not has_duration:
+                            for line in remaining.splitlines():
+                                if line.strip() and not should_filter_line(line):
+                                    click.echo(f"    {line}")
+                except (IOError, BlockingIOError, TypeError):
+                    pass
+            
+        finally:
+            # Restore original signal handler
+            signal.signal(signal.SIGINT, old_handler)
         
         stdout = ''.join(output_lines)
         stderr = ""
         
-        if has_duration:
+        if has_duration or user_interrupted:
             returncode = proc.returncode if proc.returncode is not None else 0
+            # Exit code 130 (128+2) is normal for SIGINT, treat as success
             if returncode < 0 or returncode in (130, 143):
                 returncode = 0
         else:
