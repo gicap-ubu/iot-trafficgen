@@ -26,7 +26,7 @@
 | `hping3` | SYN/ICMP Flood | `apt install hping3` |
 | `arpspoof` | ARP Spoofing | `apt install dsniff` |
 
-See [docs/installation.md](docs/installation.md) for the full installation guide and laboratory setup.
+See [docs/Installation.md](docs/Installation.md) for the full installation guide and laboratory setup.
 
 ---
 
