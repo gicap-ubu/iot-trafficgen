@@ -1,2 +1,175 @@
-# iot-trafficgen
-Python package for traffic generation within IoT environments
+# iottrafficgen
+
+**Reproducible IoT Traffic Generation Framework for Cybersecurity Research**
+
+[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Version](https://img.shields.io/badge/version-0.1.0-green.svg)](pyproject.toml)
+
+`iottrafficgen` is an open-source framework for generating reproducible IoT network traffic in controlled laboratory environments. It enables cybersecurity researchers to produce labeled datasets with both benign IoT behavior and realistic attack scenarios, featuring automated ground-truth labeling via UDP markers and structured JSON metadata per execution.
+
+---
+
+## Requirements
+
+- **OS:** Linux (Ubuntu 20.04+, Raspberry Pi OS)
+- **Python:** 3.10 or higher
+- **Network:** Isolated laboratory environment
+
+**External tools** (installed separately, only needed for their respective attack categories):
+
+| Tool | Category | Install (Debian/Ubuntu) |
+|------|----------|-------------------------|
+| `nmap` | Reconnaissance | `apt install nmap` |
+| `hydra` | SSH Brute Force | `apt install hydra` |
+| `sqlmap` | SQL Injection | `apt install sqlmap` |
+| `hping3` | SYN/ICMP Flood | `apt install hping3` |
+| `arpspoof` | ARP Spoofing | `apt install dsniff` |
+
+See [docs/installation.md](docs/installation.md) for the full installation guide and laboratory setup.
+
+---
+
+## Installation
+
+```bash
+git clone https://github.com/yourusername/iottrafficgen.git
+cd iottrafficgen
+pip install -e .
+iottrafficgen --version
+```
+
+---
+
+## Quick Start
+
+### Interactive mode
+
+```bash
+iottrafficgen run
+```
+
+Launches a menu to browse all 66 scenarios, configure parameters, and execute.
+
+### Direct execution
+
+```bash
+# Run a specific scenario
+iottrafficgen run scenarios/nmap/01.yaml
+
+# Validate without executing
+iottrafficgen run scenarios/nmap/01.yaml --dry-run
+
+# List all available scenarios
+iottrafficgen list
+```
+
+### Programmatic API
+
+```python
+from pathlib import Path
+from iottrafficgen import run_scenario
+
+run_scenario(
+    scenario_path=Path("scenarios/nmap/01.yaml"),
+    workspace=Path("/data/captures"),
+    dry_run=False,
+    verbose=True,
+    quiet=False,
+)
+```
+
+---
+
+## Available Scenarios
+
+| Category | Scenarios | Tool | Description |
+|----------|-----------|------|-------------|
+| NMAP Reconnaissance | 30 | `nmap` | SYN/ACK/FIN/NULL scans, port ranges, timing profiles (T1-T5) |
+| SSH Brute Force | 6 | `hydra` | Credential attacks with varying thread counts and timeouts |
+| SQL Injection | 6 | `sqlmap` | Time-based, Boolean-based, and error-based techniques |
+| Denial of Service | 17 | `hping3`, Python | SYN flood (6), ICMP flood (7), MQTT flood (4) |
+| ARP Spoofing (MITM) | 1 | `arpspoof` | Man-in-the-middle via ARP cache poisoning |
+| MQTT Injection | 2 | Python | False sensor data injection into MQTT topics |
+| DNS Beaconing | 1 | Python | C2 communication simulation via DNS queries |
+| Benign Traffic | 3 | Python | IoT device swarm, MQTT bridge, infrastructure check |
+
+**Total: 66 scenarios.** Each scenario has a corresponding profile with tool-specific parameters.
+
+---
+
+## Output Structure
+
+Each execution produces a timestamped directory under `runs/`:
+
+```
+runs/
+└── nmap_01_20260209_143022/
+    ├── run_metadata.json      # Execution metadata (JSON)
+    ├── execution.log          # Detailed execution log
+    └── outputs/               # Tool-specific output files
+```
+
+`run_metadata.json` captures all execution parameters, timestamps, environment variables, and exit codes for reproducibility.
+
+---
+
+## Ground-Truth Markers
+
+`iottrafficgen` sends UDP packets marking the exact start and end of each traffic event, enabling precise labeling when combined with packet capture tools (tcpdump, Wireshark, Zeek).
+
+```json
+{
+  "type": "GROUND_TRUTH",
+  "event": "ATTACK_START",
+  "attack_id": "nmap_01_20260209_143022",
+  "ts_iso_utc": "2026-02-09T14:30:22Z",
+  "target_ip": "192.168.8.121",
+  "label": "NMAP_SYN_HUB_P1_1000_T3"
+}
+```
+
+Default destination: `127.0.0.1:55556` (UDP). Configurable per scenario.
+
+---
+
+## Security Warning
+
+**This software generates real network attacks.**
+Use only in **physically isolated laboratory networks** with no internet connection.
+Only target systems you own or have explicit written authorization to test.
+
+---
+
+## Documentation
+
+| Document | Description |
+|----------|-------------|
+| [docs/installation.md](docs/installation.md) | Full installation guide and laboratory setup |
+| [docs/examples.md](docs/examples.md) | Practical usage examples and dataset creation workflow |
+| [docs/contributing.md](docs/contributing.md) | How to add new scenarios, profiles, and scripts |
+| [scenarios/README.md](scenarios/README.md) | Scenario YAML format and field reference |
+| [profiles/README.md](profiles/README.md) | Profile system and tool argument reference |
+| [scripts/README.md](scripts/README.md) | Backend script descriptions and environment variables |
+
+---
+
+## Citation
+
+If you use `iottrafficgen` in your research, please cite:
+
+```bibtex
+@article{iottrafficgen2026,
+  title   = {iottrafficgen: A Reproducible IoT Traffic Generation Framework},
+  author  = {GICAP Research Group},
+  journal = {SoftwareX},
+  year    = {2026}
+}
+```
+
+---
+
+## License
+
+MIT License -- see [LICENSE](LICENSE) for details.
+Copyright (c) 2026 Grupo de Inteligencia Computacional Aplicada (GICAP)
