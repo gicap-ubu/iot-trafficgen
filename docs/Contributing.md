@@ -41,13 +41,12 @@ OUT_DIR="${OUT_DIR:-runs/${RUN_ID}/my_attack}"
 mkdir -p "$OUT_DIR"
 
 # Validate tool availability
-MY_TOOL=$(command -v mytool 2>/dev/null || echo "mytool")
-if ! command -v "$MY_TOOL" &>/dev/null; then
+if ! command -v mytool &>/dev/null; then
     echo "[my_attack] ERROR: mytool not found in PATH"
     exit 1
 fi
 
-# Handle SIGINT for graceful shutdown
+# Handle SIGINT/SIGTERM for graceful shutdown
 trap 'echo "[my_attack] Interrupted"; exit 130' INT TERM
 
 # Execute
@@ -55,7 +54,7 @@ read -r -a ARGS <<< "$TOOL_ARGS"
 OUTPUT_FILE="${OUT_DIR}/output.txt"
 
 set +e
-timeout "$DURATION_SECONDS" "$MY_TOOL" "${ARGS[@]}" "$TARGET_IP" > "$OUTPUT_FILE" 2>&1
+timeout "$DURATION_SECONDS" mytool "${ARGS[@]}" "$TARGET_IP" > "$OUTPUT_FILE" 2>&1
 EXIT_CODE=$?
 set -e
 
@@ -70,8 +69,6 @@ Script requirements:
 - Handle `SIGINT`/`SIGTERM` for graceful shutdown (exit code 130).
 - Exit with the tool's exit code.
 - Mark the script as executable: `chmod +x scripts/attacks/my_attack/my_attack.sh`.
-
-For Python scripts, use `#!/usr/bin/env python3` and read variables with `os.environ`.
 
 ### 2. Create a profile
 
@@ -138,22 +135,53 @@ To add a variant of an existing attack (e.g., a new NMAP timing profile):
 2. Create a new scenario: `scenarios/nmap/31.yaml`
 3. Reference the new profile from the new scenario.
 
-No script changes are needed -- the same script runs with different `TOOL_ARGS`.
+No script changes are needed — the same script runs with different `TOOL_ARGS`.
 
 ---
 
 ## Adding a Benign Traffic Component
 
-Benign scenarios follow the same pattern but with `type: "benign"`:
+Benign traffic scripts follow the same pattern but with `type: "benign"` in the scenario.
+
+For **Python scripts**, catch `KeyboardInterrupt` to allow graceful shutdown when the user presses Ctrl+C. This is important: the engine sends `SIGINT` to stop indefinitely-running scripts and collect metadata cleanly.
+
+```python
+#!/usr/bin/env python3
+# scripts/benign/my_sensor.py
+
+import os
+import time
+import json
+
+BROKER_IP  = os.environ.get('BROKER_IP', '192.168.1.121')
+OUT_DIR    = os.environ.get('OUT_DIR', '.')
+
+print(f"[my_sensor] Starting — broker: {BROKER_IP}")
+
+try:
+    while True:
+        # generate and publish sensor data
+        time.sleep(1)
+
+except KeyboardInterrupt:
+    print("\n[my_sensor] Stopped by user")
+
+    # Write any final outputs to OUT_DIR
+    summary = {"broker": BROKER_IP, "status": "completed"}
+    with open(os.path.join(OUT_DIR, "summary.json"), "w") as f:
+        json.dump(summary, f)
+```
+
+Define the scenario with `type: benign`:
 
 ```yaml
 runs:
-  - id: my_benign_01
-    type: benign           # <-- "benign" instead of "attack"
-    label: "MY_BENIGN_COMPONENT"
-    script: ../../scripts/benign/my_component.py
+  - id: my_sensor_01
+    type: benign
+    label: "MY_SENSOR_COMPONENT"
+    script: ../../scripts/benign/my_sensor.py
     env:
-      BROKER_IP: "192.168.1.10_PLACEHOLDER"
+      BROKER_IP: "192.168.1.121_PLACEHOLDER"
 ```
 
 The marker system automatically sends `BENIGN_START` / `BENIGN_END` events instead of `ATTACK_START` / `ATTACK_END`.
@@ -182,9 +210,9 @@ Adjust the exit option accordingly.
 
 ## Code Style
 
-- Python: follow existing patterns in `src/iottrafficgen/`.
-- Shell scripts: use `set -euo pipefail`, validate required variables with `: "${VAR:?message}"`.
-- YAML: consistent indentation (2 spaces), quote strings with special characters.
+- **Python:** follow existing patterns in `src/iottrafficgen/`.
+- **Shell scripts:** use `set -euo pipefail`, validate required variables with `: "${VAR:?message}"`.
+- **YAML:** 2-space indentation, quote strings with special characters.
 
 ---
 
@@ -200,9 +228,9 @@ pytest
 ## Checklist for New Contributions
 
 - [ ] Script reads configuration from environment variables
-- [ ] Script handles SIGINT/SIGTERM gracefully
+- [ ] Script handles SIGINT/SIGTERM gracefully (exit code 130 for shell, `KeyboardInterrupt` for Python)
 - [ ] Script validates tool availability and provides a clear error message
-- [ ] Script outputs to `$OUT_DIR`
+- [ ] Script writes outputs to `$OUT_DIR`
 - [ ] Profile YAML has `tool`, `name`, `description`, `tool_args`
 - [ ] Scenario YAML has `scenario.name`, `scenario.description`, `runs`
 - [ ] Scenario uses `_PLACEHOLDER` for environment-specific values

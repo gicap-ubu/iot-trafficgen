@@ -19,7 +19,7 @@ Complete installation instructions for `iottrafficgen` and the laboratory infras
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/iottrafficgen.git
+git clone https://github.com/branly-martinez/iottrafficgen.git
 cd iottrafficgen
 
 # Install the package (editable mode)
@@ -71,6 +71,8 @@ sudo apt install -y nmap hydra sqlmap hping3 dsniff
 | `arpspoof` | ARP Spoofing (1 scenario) | `sudo apt install dsniff` | `which arpspoof` |
 
 `iottrafficgen` validates tool availability before execution and provides installation hints if a required tool is missing.
+
+> **Note:** DoS (SYN flood, ICMP flood) and MITM (ARP spoofing) scenarios require root privileges to send raw packets. Use `sudo iottrafficgen run` for these categories, or run the session as root.
 
 ---
 
@@ -217,7 +219,7 @@ After installation, verify your setup:
 # 1. iottrafficgen itself
 iottrafficgen --version
 
-# 2. Dry-run a scenario (no tools needed)
+# 2. Dry-run a scenario (no tools or network needed)
 iottrafficgen run scenarios/nmap/01.yaml --dry-run
 
 # 3. List all available scenarios
@@ -233,3 +235,5 @@ which arpspoof
 # 5. Check lab services (if using benign traffic)
 iottrafficgen run scenarios/benign/03_infrastructure.yaml
 ```
+
+> **Note:** Steps 4 and 5 are optional depending on which scenario categories you intend to use.

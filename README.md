@@ -33,7 +33,7 @@ See [docs/Installation.md](docs/Installation.md) for the full installation guide
 ## Installation
 
 ```bash
-git clone https://github.com/yourusername/iottrafficgen.git
+git clone https://github.com/branly-martinez/iottrafficgen.git
 cd iottrafficgen
 pip install -e .
 iottrafficgen --version
@@ -85,7 +85,7 @@ run_scenario(
 
 | Category | Scenarios | Tool | Description |
 |----------|-----------|------|-------------|
-| NMAP Reconnaissance | 30 | `nmap` | SYN/ACK/FIN/NULL scans, port ranges, timing profiles (T1-T5) |
+| NMAP Reconnaissance | 30 | `nmap` | SYN/ACK/FIN/NULL scans, port ranges, timing profiles (T1–T5) |
 | SSH Brute Force | 6 | `hydra` | Credential attacks with varying thread counts and timeouts |
 | SQL Injection | 6 | `sqlmap` | Time-based, Boolean-based, and error-based techniques |
 | Denial of Service | 17 | `hping3`, Python | SYN flood (6), ICMP flood (7), MQTT flood (4) |
@@ -95,6 +95,19 @@ run_scenario(
 | Benign Traffic | 3 | Python | IoT device swarm, MQTT bridge, infrastructure check |
 
 **Total: 66 scenarios.** Each scenario has a corresponding profile with tool-specific parameters.
+
+---
+
+## How It Works
+
+`iottrafficgen` orchestrates traffic generation in four steps:
+
+1. **Load** — Parses the scenario YAML and the referenced tool profile.
+2. **Configure** — Prompts for placeholder values; validates tools and scripts.
+3. **Execute** — Sends a `*_START` UDP marker, runs the backend script, sends a `*_END` marker.
+4. **Record** — Writes `run_metadata.json` and `execution.log` to a timestamped directory under `runs/`.
+
+The separation between scenario (what to do), profile (how to configure the tool), and script (how to execute it) allows full reproducibility: re-running the same YAML with the same parameters produces an identical traffic pattern.
 
 ---
 
@@ -135,8 +148,8 @@ Default destination: `127.0.0.1:55556` (UDP). Configurable per scenario.
 
 ## Security Warning
 
-**This software generates real network attacks.**
-Use only in **physically isolated laboratory networks** with no internet connection.
+⚠️ **This software generates real network attacks.**  
+Use only in **physically isolated laboratory networks** with no internet connection.  
 Only target systems you own or have explicit written authorization to test.
 
 ---
@@ -154,22 +167,7 @@ Only target systems you own or have explicit written authorization to test.
 
 ---
 
-## Citation
-
-If you use `iottrafficgen` in your research, please cite:
-
-```bibtex
-@article{iottrafficgen2026,
-  title   = {iottrafficgen: A Reproducible IoT Traffic Generation Framework},
-  author  = {GICAP Research Group},
-  journal = {SoftwareX},
-  year    = {2026}
-}
-```
-
----
-
 ## License
 
-MIT License -- see [LICENSE](LICENSE) for details.
-Copyright (c) 2026 Grupo de Inteligencia Computacional Aplicada (GICAP)
+MIT License — see [LICENSE](LICENSE) for details.  
+Copyright (c) 2026 Branly Martínez, Grupo de Investigación de Inteligencia Artificial Aplicada, Universidad de Burgos, Spain.

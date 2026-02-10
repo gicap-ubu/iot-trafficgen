@@ -33,13 +33,13 @@ iottrafficgen run scenarios/nmap/01.yaml
 ```
 
 You will be prompted for:
-- `TARGET_IP` -- the IP of the device to scan
-- `MARKER_HOST` -- where to send ground-truth markers
+- `TARGET_IP` — the IP of the device to scan
+- `MARKER_HOST` — where to send ground-truth markers
 
 Output in `runs/nmap_01_<timestamp>/outputs/`:
-- `scan.nmap` -- human-readable scan results
-- `scan.xml` -- XML output
-- `scan.gnmap` -- grepable output
+- `scan.nmap` — human-readable scan results
+- `scan.xml` — XML output
+- `scan.gnmap` — grepable output
 
 ### SSH Brute Force
 
@@ -84,7 +84,7 @@ iottrafficgen run scenarios/benign/01_device_swarm.yaml
 
 Prompts for: `BROKER_IP`, `WEB_SERVER_IP`.
 
-Runs indefinitely (Ctrl+C to stop). Generates MQTT, HTTP, and UDP traffic from 30 simulated sensors.
+Runs indefinitely — press Ctrl+C to stop gracefully. Generates MQTT, HTTP, and UDP traffic from 30 simulated sensors.
 
 ---
 
@@ -162,7 +162,7 @@ Logs are always written to `runs/<run_id>/execution.log` regardless of console v
 
 ## 7. Dataset Creation Workflow
 
-A typical workflow for creating a labeled dataset:
+A typical workflow for creating a labeled dataset.
 
 ### Step 1: Start packet capture
 
@@ -191,23 +191,50 @@ sudo iottrafficgen run scenarios/denial_of_service/syn_01.yaml
 ### Step 4: Stop capture and benign traffic
 
 ```bash
-# Stop benign traffic (Ctrl+C in its terminal)
+# Stop benign traffic (Ctrl+C in its terminal, generates metadata cleanly)
 # Stop packet capture
 kill $TCPDUMP_PID
 ```
 
-### Step 5: Extract ground-truth labels
+### Step 5: Extract ground-truth markers from capture
 
 ```bash
-# Extract markers from capture
 tshark -r dataset_capture.pcap -Y "udp.port == 55556" -T json > markers.json
 ```
 
-### Step 6: Collect metadata
+### Step 6: Label packets using run metadata
 
-All execution metadata is in:
-- `runs/*/run_metadata.json` -- per-run metadata
-- `.iottrafficgen/scenario_metadata_*.json` -- per-scenario metadata
+Each `run_metadata.json` records `start_time_utc` and `end_time_utc`. Cross-reference these with your packet timestamps to assign labels:
+
+```python
+import json, glob
+from datetime import datetime, timezone
+
+# Load all run metadata
+runs = []
+for path in glob.glob('runs/*/run_metadata.json'):
+    with open(path) as f:
+        runs.append(json.load(f))
+
+def get_label(packet_ts: float) -> str:
+    """Return 'attack' or 'benign' for a packet Unix timestamp."""
+    ts = datetime.fromtimestamp(packet_ts, tz=timezone.utc)
+    for run in runs:
+        start = datetime.fromisoformat(run['start_time_utc'])
+        end   = datetime.fromisoformat(run['end_time_utc'])
+        if start <= ts <= end:
+            return run['type']   # "attack" or "benign"
+    return 'benign'
+
+# Example: label packets from a tshark JSON export
+with open('markers.json') as f:
+    packets = json.load(f)
+
+for pkt in packets:
+    ts = float(pkt['_source']['layers']['frame']['frame.time_epoch'])
+    label = get_label(ts)
+    print(f"{ts:.3f}  →  {label}")
+```
 
 ---
 
