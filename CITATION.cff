@@ -1,0 +1,28 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+type: software
+title: "iottrafficgen: A Reproducible IoT Traffic Generation Framework"
+version: 0.1.0
+date-released: "2026-02-09"
+url: "https://github.com/gicap-ubu/iot-trafficgen.git"
+license: MIT
+authors:
+  - family-names: "Martínez"
+    given-names: "Branly"
+    email: bamgonzalez@ubu.es
+    affiliation: "Grupo de Investigación de Inteligencia Artificial Aplicada, Universidad de Burgos, Spain"
+    # orcid: "https://orcid.org/0009-0002-3224-7131"
+keywords:
+  - IoT
+  - cybersecurity
+  - traffic generation
+  - network security
+  - reproducibility
+  - dataset creation
+abstract: >-
+  iottrafficgen is an open-source framework for generating reproducible
+  IoT network traffic in controlled laboratory environments. It enables
+  cybersecurity researchers to produce labeled datasets with both benign
+  IoT behavior and attack scenarios, featuring automated
+  ground-truth labeling via UDP markers and structured JSON metadata
+  per execution.
