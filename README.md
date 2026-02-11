@@ -6,7 +6,9 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Version](https://img.shields.io/badge/version-0.1.0-green.svg)](pyproject.toml)
 
-`iottrafficgen` is an open-source framework for generating reproducible IoT network traffic in controlled laboratory environments. It enables cybersecurity researchers to produce labeled datasets with both benign IoT behavior and realistic attack scenarios, featuring automated ground-truth labeling via UDP markers and structured JSON metadata per execution.
+`iottrafficgen` is an open-source framework for generating reproducible IoT network traffic in controlled laboratory environments. It enables cybersecurity researchers to produce labeled datasets containing both benign IoT behavior and traffic patterns associated with common attack techniques. The framework integrates automated ground-truth labeling via UDP markers and structured JSON metadata per execution.
+
+The framework is intended for controlled laboratory experimentation and dataset creation, not for operational intrusion detection or exploitation.
 
 ---
 
@@ -49,7 +51,7 @@ iottrafficgen --version
 iottrafficgen run
 ```
 
-Launches a menu to browse all 66 scenarios, configure parameters, and execute.
+Launches an interactive menu to browse available scenarios, configure parameters, and execute.
 
 ### Direct execution
 
@@ -146,11 +148,11 @@ Default destination: `127.0.0.1:55556` (UDP). Configurable per scenario.
 
 ---
 
-## Security Warning
+## Security Notice
 
-⚠️ **This software generates real network attacks.**  
-Use only in **physically isolated laboratory networks** with no internet connection.  
-Only target systems you own or have explicit written authorization to test.
+This software generates network traffic patterns associated with attack techniques. It must be used exclusively in controlled laboratory environments that are physically isolated or logically segmented from production networks.
+
+Only target systems you own or have explicit authorization to test.
 
 ---
 
