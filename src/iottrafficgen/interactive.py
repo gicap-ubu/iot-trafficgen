@@ -7,23 +7,21 @@ from typing import List, Dict, Tuple, Optional
 import yaml
 from colorama import Fore, Style, init
 
-# Initialize colorama
 init(autoreset=True)
 
-BANNER = f"""{Fore.CYAN}  ═══════════════════════════════════════════════════
-   ██╗ ██████╗ ████████╗     █████╗ ████████╗ ██████╗ 
-   ██║██╔═══██╗╚══██╔══╝    ██╔══██╗╚══██╔══╝██╔════╝ 
-   ██║██║   ██║   ██║       ███████║   ██║   ██║  ███╗
-   ██║██║   ██║   ██║       ██╔══██║   ██║   ██║   ██║
-   ██║╚██████╔╝   ██║       ██║  ██║   ██║   ╚██████╔╝
-   ╚═╝ ╚═════╝    ╚═╝       ╚═╝  ╚═╝   ╚═╝    ╚═════╝ 
+BANNER = f"""{Fore.CYAN}  ═══════════════════════════════════════════════════════
+   ██╗ ██████╗ ████████╗    ██████╗      █████╗ ████████╗ ██████╗ 
+   ██║██╔═══██╗╚══██╔══╝    ██╔══██╗    ██╔══██╗╚══██╔══╝██╔════╝ 
+   ██║██║   ██║   ██║       ██████╔╝    ███████║   ██║   ██║  ███╗
+   ██║██║   ██║   ██║       ██╔══██╗    ██╔══██║   ██║   ██║   ██║
+   ██║╚██████╔╝   ██║       ██████╔╝    ██║  ██║   ██║   ╚██████╔╝
+   ╚═╝ ╚═════╝    ╚═╝       ╚═════╝     ╚═╝  ╚═╝   ╚═╝    ╚═════╝ 
    
-           IoT Attack Traffic Generator
-                  Version 0.1.0
-  ═══════════════════════════════════════════════════{Style.RESET_ALL}
+      IoT Benign & Attack Traffic Generator (B_ATG)
+                     Version 0.1.0
+  ═══════════════════════════════════════════════════════{Style.RESET_ALL}
 """
 
-# Attack categories configuration
 CATEGORIES = {
     "1": {
         "name": "NMAP Reconnaissance",
@@ -66,6 +64,12 @@ CATEGORIES = {
         "path": "scenarios/dns_beacon",
         "count": 1,
         "description": "C2 communication simulation"
+    },
+    "8": {
+        "name": "Benign Traffic",
+        "path": "scenarios/benign",
+        "count": 1,
+        "description": "IoT baseline traffic generation"
     }
 }
 
@@ -78,14 +82,14 @@ def print_banner():
 def print_main_menu():
     """Print the main category selection menu."""
     print(f"\n{Fore.YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━{Style.RESET_ALL}")
-    print(f"{Fore.YELLOW}       Attack Categories Available{Style.RESET_ALL}")
+    print(f"{Fore.YELLOW}       Traffic Generation Categories{Style.RESET_ALL}")
     print(f"{Fore.YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━{Style.RESET_ALL}\n")
     
     for key, cat in CATEGORIES.items():
         count_str = f"({cat['count']:2} scenario{'s' if cat['count'] > 1 else ' '})"
         print(f" {Fore.GREEN}[{key}]{Style.RESET_ALL} {cat['name']:<25} {Fore.CYAN}{count_str}{Style.RESET_ALL}")
     
-    print(f" {Fore.RED}[8]{Style.RESET_ALL} Exit\n")
+    print(f" {Fore.RED}[9]{Style.RESET_ALL} Exit\n")
     print(f"{Fore.YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━{Style.RESET_ALL}")
 
 
@@ -101,10 +105,8 @@ def scan_scenarios(category_path: Path) -> List[Tuple[str, Path, str]]:
     
     scenarios = []
     for yaml_file in sorted(category_path.glob("*.yaml")):
-        # Extract scenario number from filename (e.g., "01.yaml" -> "01")
         scenario_num = yaml_file.stem
         
-        # Try to read description from YAML
         description = "No description"
         try:
             with open(yaml_file, 'r', encoding='utf-8') as f:
@@ -112,7 +114,7 @@ def scan_scenarios(category_path: Path) -> List[Tuple[str, Path, str]]:
                 if data and 'scenario' in data and 'description' in data['scenario']:
                     description = data['scenario']['description']
         except Exception:
-            pass  # Keep default description if file can't be read
+            pass
         
         scenarios.append((scenario_num, yaml_file, description))
     
@@ -125,7 +127,6 @@ def print_scenario_menu(category_name: str, scenarios: List[Tuple[str, Path, str
     print(f"{Fore.CYAN}  {category_name} - Select Scenario{Style.RESET_ALL}")
     print(f"{Fore.CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━{Style.RESET_ALL}\n")
     
-    # Print scenarios in 3 columns
     num_scenarios = len(scenarios)
     for i in range(0, num_scenarios, 3):
         row = []
@@ -135,11 +136,70 @@ def print_scenario_menu(category_name: str, scenarios: List[Tuple[str, Path, str
                 num, _, _ = scenarios[idx]
                 row.append(f" {Fore.GREEN}[{idx+1:2}]{Style.RESET_ALL} Scenario {num}")
             else:
-                row.append(" " * 20)  # Empty space for alignment
+                row.append(" " * 20)
         print("".join(f"{item:25}" for item in row))
     
     print(f"\n {Fore.YELLOW}[ 0]{Style.RESET_ALL} Back to main menu  |  {Fore.RED}[-1]{Style.RESET_ALL} Exit")
-    print(f"{Fore.CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━{Style.RESET_ALL}")
+
+
+def print_benign_submenu():
+    """Print benign traffic component selection submenu."""
+    print(f"\n{Fore.CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━{Style.RESET_ALL}")
+    print(f"{Fore.CYAN}  Benign Traffic - Select Component{Style.RESET_ALL}")
+    print(f"{Fore.CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━{Style.RESET_ALL}\n")
+    
+    print(f" {Fore.GREEN}[1]{Style.RESET_ALL} IoT Device Swarm        Generate sensor traffic")
+    print(f" {Fore.GREEN}[2]{Style.RESET_ALL} MQTT Bridge             Connect MQTT to database")
+    print(f" {Fore.GREEN}[3]{Style.RESET_ALL} Infrastructure Setup    Verify/configure services\n")
+    
+    print(f" {Fore.YELLOW}[0]{Style.RESET_ALL} Back to main menu  |  {Fore.RED}[-1]{Style.RESET_ALL} Exit")
+    print(f"{Fore.CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━{Style.RESET_ALL}")
+
+
+def show_benign_submenu(workspace: Path) -> Optional[list]:
+    """
+    Show benign traffic component submenu and return selected scenario.
+    
+    Returns:
+        List with single scenario tuple, or None if user exits, or empty list if back
+    """
+    benign_components = {
+        1: "01_device_swarm.yaml",
+        2: "02_mqtt_bridge.yaml",
+        3: "03_infrastructure.yaml"
+    }
+    
+    while True:
+        print_benign_submenu()
+        
+        component_choice = get_input("Select [1-3] or 0 (back) or -1 (exit):", range(0, 4))
+        
+        if component_choice == -1:
+            return None
+        
+        if component_choice == 0:
+            return []
+        
+        scenario_file = benign_components[component_choice]
+        scenario_path = workspace / "scenarios" / "benign" / scenario_file
+        
+        if not scenario_path.exists():
+            print(f"\n{Fore.RED}Scenario not found: {scenario_path}{Style.RESET_ALL}")
+            print(f"{Fore.YELLOW}Press Enter to continue...{Style.RESET_ALL}")
+            input()
+            continue
+        
+        try:
+            with open(scenario_path, 'r', encoding='utf-8') as f:
+                data = yaml.safe_load(f)
+                if data and 'scenario' in data and 'description' in data['scenario']:
+                    description = data['scenario']['description']
+                else:
+                    description = "No description"
+        except Exception:
+            description = "No description"
+        
+        return [(scenario_path.stem, scenario_path, description)]
 
 
 def get_input(prompt: str, valid_range: range) -> int:
@@ -166,7 +226,6 @@ def get_input(prompt: str, valid_range: range) -> int:
 
 def print_scenario_details(scenario_num: str, scenario_path: Path, description: str):
     """Print detailed information about a selected scenario."""
-    # Read additional info from YAML
     name = "Unknown"
     profile = "Unknown"
     script = "Unknown"
@@ -190,7 +249,6 @@ def print_scenario_details(scenario_num: str, scenario_path: Path, description: 
     print(f"{Fore.CYAN}┌─────────────────────────────────────────────────────────────┐{Style.RESET_ALL}")
     print(f"{Fore.CYAN}│{Style.RESET_ALL} Name: {name:<53}{Fore.CYAN}│{Style.RESET_ALL}")
     
-    # Wrap description if too long
     desc_lines = []
     if len(description) <= 53:
         desc_lines.append(description)
@@ -212,15 +270,18 @@ def print_scenario_details(scenario_num: str, scenario_path: Path, description: 
         else:
             print(f"{Fore.CYAN}│{Style.RESET_ALL}              {line:<47}{Fore.CYAN}│{Style.RESET_ALL}")
     
-    print(f"{Fore.CYAN}│{Style.RESET_ALL} Profile: {profile:<49}{Fore.CYAN}│{Style.RESET_ALL}")
-    print(f"{Fore.CYAN}│{Style.RESET_ALL} Script: {script:<50}{Fore.CYAN}│{Style.RESET_ALL}")
+    print(f"{Fore.CYAN}│{Style.RESET_ALL} Profile: {profile:<50}{Fore.CYAN}│{Style.RESET_ALL}")
+    print(f"{Fore.CYAN}│{Style.RESET_ALL} Script:  {script:<50}{Fore.CYAN}│{Style.RESET_ALL}")
     print(f"{Fore.CYAN}└─────────────────────────────────────────────────────────────┘{Style.RESET_ALL}\n")
 
 
 def detect_and_configure_placeholders(scenario_path: Path) -> Optional[Path]:
     """
-    Detect placeholders in scenario and prompt user for values.
+    Detect placeholders in scenario and prompt for configuration.
     Creates a temporary configured YAML file.
+    
+    Placeholders can have default values in the original YAML.
+    If user presses Enter without typing, the default is used.
     
     Returns:
         Path to configured temporary YAML, or None if user cancels
@@ -235,120 +296,143 @@ def detect_and_configure_placeholders(scenario_path: Path) -> Optional[Path]:
         print(f"{Fore.RED}Error reading scenario: {e}{Style.RESET_ALL}")
         return None
     
-    # Find all placeholders in env variables AND scenario markers
-    placeholders = {}
+    env_vars = {}
+    defaults = {}
     
-    # Check runs env variables
+    # Extract ALL environment variables from runs
     if 'runs' in data:
         for run in data['runs']:
             if 'env' in run:
                 for key, value in run['env'].items():
-                    if isinstance(value, str) and '_PLACEHOLDER' in value:
-                        placeholders[key] = value
+                    if isinstance(value, str):
+                        env_vars[key] = value
+                        # Extract default value
+                        if '_PLACEHOLDER' in value:
+                            # Remove _PLACEHOLDER suffix to get default
+                            default_val = value.replace('_PLACEHOLDER', '').strip()
+                            defaults[key] = default_val if default_val else ''
+                        else:
+                            # Value itself is the default
+                            defaults[key] = value
     
-    # Check scenario markers
+    # Check for marker host placeholder
     if 'scenario' in data and 'markers' in data['scenario']:
         markers = data['scenario']['markers']
         if 'host' in markers and isinstance(markers['host'], str) and '_PLACEHOLDER' in markers['host']:
-            placeholders['MARKER_HOST'] = markers['host']
+            env_vars['MARKER_HOST'] = markers['host']
+            default_val = markers['host'].replace('_PLACEHOLDER', '').strip()
+            defaults['MARKER_HOST'] = default_val if default_val else ''
     
-    if not placeholders:
-        # No placeholders, use original file
+    if not env_vars:
         return scenario_path
     
-    # Prompt for configuration
-    print(f"{Fore.YELLOW}Configuration required:{Style.RESET_ALL}\n")
+    # Prompt user for values
+    print(f"\n{Fore.YELLOW}Configuration Required{Style.RESET_ALL}")
+    print(f"{Fore.CYAN}{'─' * 60}{Style.RESET_ALL}")
+    print(f"Press {Fore.GREEN}Enter{Style.RESET_ALL} to use default values shown in {Fore.CYAN}[brackets]{Style.RESET_ALL}\n")
     
-    configured_values = {}
-    for key, placeholder in placeholders.items():
-        while True:
-            try:
-                print(f"{Fore.CYAN}  {key}:{Style.RESET_ALL} ", end="")
-                value = input().strip()
-                
-                if not value:
-                    print(f"{Fore.RED}  Value cannot be empty. Please try again.{Style.RESET_ALL}")
-                    continue
-                
-                configured_values[key] = value
-                break
-            except KeyboardInterrupt:
-                print(f"\n{Fore.YELLOW}Configuration cancelled.{Style.RESET_ALL}")
-                return None
+    user_values = {}
     
-    # Replace placeholders in runs env
-    for run in data['runs']:
-        if 'env' in run:
-            for key, value in configured_values.items():
-                if key in run['env']:
-                    run['env'][key] = value
+    for key in sorted(env_vars.keys()):
+        default = defaults.get(key, '')
         
-        # Resolve relative paths to absolute paths
-        if 'script' in run:
-            script_path = Path(run['script'])
-            if not script_path.is_absolute():
-                # Resolve relative to original scenario directory
-                absolute_script = (scenario_path.parent / script_path).resolve()
-                run['script'] = str(absolute_script)
+        if default:
+            prompt = f"{Fore.GREEN}{key}{Style.RESET_ALL} [{Fore.CYAN}{default}{Style.RESET_ALL}]: "
+        else:
+            prompt = f"{Fore.GREEN}{key}{Style.RESET_ALL} (required): "
         
-        if 'profile' in run:
-            profile_path = Path(run['profile'])
-            if not profile_path.is_absolute():
-                # Resolve relative to original scenario directory
-                absolute_profile = (scenario_path.parent / profile_path).resolve()
-                run['profile'] = str(absolute_profile)
+        user_input = input(prompt).strip()
         
-        # Resolve WORDLIST path intelligently
-        if 'env' in run and 'WORDLIST' in run['env']:
-            wordlist_value = run['env']['WORDLIST']
-            wordlist_path = Path(wordlist_value)
-            
-            # If absolute path, use as-is
-            if wordlist_path.is_absolute():
-                run['env']['WORDLIST'] = str(wordlist_path)
-            # If just a filename (no path separators), search in known locations
-            elif '/' not in wordlist_value and '\\' not in wordlist_value:
-                # Search locations in order of priority:
-                # 1. Current working directory (where user runs the command)
-                # 2. scripts/attacks/bruteforce/ directory (bundled wordlists)
-                
-                project_root = scenario_path.parent.parent.parent
-                search_paths = [
-                    Path.cwd() / wordlist_value,  # Where user is now
-                    project_root / 'scripts' / 'attacks' / 'bruteforce' / wordlist_value,
-                ]
-                
-                found = False
-                for candidate in search_paths:
-                    if candidate.exists():
-                        run['env']['WORDLIST'] = str(candidate.resolve())
-                        found = True
-                        break
-                
-                if not found:
-                    # If not found anywhere, leave as-is and let script handle error
-                    run['env']['WORDLIST'] = wordlist_value
-            # If relative path with directories, resolve from current directory
-            else:
-                absolute_wordlist = (Path.cwd() / wordlist_path).resolve()
-                run['env']['WORDLIST'] = str(absolute_wordlist)
+        # If empty and there's a default, use it
+        if not user_input and default:
+            user_values[key] = default
+            print(f"  → Using default: {Fore.CYAN}{default}{Style.RESET_ALL}")
+        # If empty and no default, require input
+        elif not user_input and not default:
+            print(f"  {Fore.RED}This value is required{Style.RESET_ALL}")
+            # Re-prompt for this key
+            while not user_input:
+                user_input = input(prompt).strip()
+                if not user_input:
+                    print(f"  {Fore.RED}This value is required{Style.RESET_ALL}")
+            user_values[key] = user_input
+        # Use what user typed
+        else:
+            user_values[key] = user_input
     
-    # Replace placeholder in scenario markers
-    if 'MARKER_HOST' in configured_values:
-        if 'scenario' not in data:
-            data['scenario'] = {}
-        if 'markers' not in data['scenario']:
-            data['scenario']['markers'] = {}
-        data['scenario']['markers']['host'] = configured_values['MARKER_HOST']
-    
-    # Create temporary file
-    temp_fd, temp_path = tempfile.mkstemp(suffix='.yaml', prefix='iottrafficgen_')
+    # Create temporary configured YAML
     try:
-        with open(temp_path, 'w', encoding='utf-8') as f:
+        # Replace placeholders in env
+        if 'runs' in data:
+            for run in data['runs']:
+                if 'env' in run:
+                    for key, value in run['env'].items():
+                        if key in user_values:
+                            run['env'][key] = user_values[key]
+                
+                # Resolve relative script paths to absolute
+                if 'script' in run:
+                    script_path = Path(run['script'])
+                    if not script_path.is_absolute():
+                        absolute_script = (scenario_path.parent / script_path).resolve()
+                        run['script'] = str(absolute_script)
+                
+                # Resolve relative profile paths to absolute
+                if 'profile' in run:
+                    profile_path = Path(run['profile'])
+                    if not profile_path.is_absolute():
+                        absolute_profile = (scenario_path.parent / profile_path).resolve()
+                        run['profile'] = str(absolute_profile)
+                
+                # Special handling for WORDLIST paths
+                if 'env' in run and 'WORDLIST' in run['env']:
+                    wordlist_value = run['env']['WORDLIST']
+                    wordlist_path = Path(wordlist_value)
+                    
+                    if wordlist_path.is_absolute():
+                        run['env']['WORDLIST'] = str(wordlist_path)
+                    elif '/' not in wordlist_value and '\\' not in wordlist_value:
+                        project_root = scenario_path.parent.parent.parent
+                        search_paths = [
+                            Path.cwd() / wordlist_value,
+                            project_root / 'scripts' / 'attacks' / 'bruteforce' / wordlist_value,
+                        ]
+                        
+                        found = False
+                        for candidate in search_paths:
+                            if candidate.exists():
+                                run['env']['WORDLIST'] = str(candidate.resolve())
+                                found = True
+                                break
+                        
+                        if not found:
+                            run['env']['WORDLIST'] = wordlist_value
+                    else:
+                        absolute_wordlist = (Path.cwd() / wordlist_path).resolve()
+                        run['env']['WORDLIST'] = str(absolute_wordlist)
+        
+        # Replace marker host placeholder
+        if 'MARKER_HOST' in user_values:
+            if 'scenario' not in data:
+                data['scenario'] = {}
+            if 'markers' not in data['scenario']:
+                data['scenario']['markers'] = {}
+            data['scenario']['markers']['host'] = user_values['MARKER_HOST']
+        
+        # Create temporary file
+        temp_fd, temp_path = tempfile.mkstemp(suffix='.yaml', prefix='iottrafficgen_')
+        temp_file = Path(temp_path)
+        
+        with open(temp_file, 'w', encoding='utf-8') as f:
             yaml.dump(data, f, default_flow_style=False, sort_keys=False)
-        return Path(temp_path)
+        
+        print(f"\n{Fore.GREEN}✓{Style.RESET_ALL} Configuration complete")
+        print(f"{Fore.CYAN}{'─' * 60}{Style.RESET_ALL}\n")
+        
+        return temp_file
+        
     except Exception as e:
-        print(f"{Fore.RED}Error creating temporary file: {e}{Style.RESET_ALL}")
+        print(f"{Fore.RED}Error creating configured scenario: {e}{Style.RESET_ALL}")
         return None
 
 
@@ -376,18 +460,23 @@ def interactive_mode(workspace: Path) -> Optional[Path]:
     while True:
         print_main_menu()
         
-        choice = get_input("Select [1-8]:", range(1, 9))
+        choice = get_input("Select [1-9]:", range(1, 10))
         
-        if choice == 8 or choice == -1:
+        if choice == 9 or choice == -1:
             print(f"\n{Fore.YELLOW}Exiting...{Style.RESET_ALL}")
             return None
         
-        # Get selected category
         category = CATEGORIES[str(choice)]
         category_path = workspace / category["path"]
         
-        # Scan for scenarios
-        scenarios = scan_scenarios(category_path)
+        if choice == 8:
+            scenarios = show_benign_submenu(workspace)
+            if scenarios is None:
+                return None
+            if len(scenarios) == 0:
+                continue
+        else:
+            scenarios = scan_scenarios(category_path)
         
         if not scenarios:
             print(f"\n{Fore.RED}No scenarios found in {category_path}{Style.RESET_ALL}")
@@ -395,7 +484,6 @@ def interactive_mode(workspace: Path) -> Optional[Path]:
             input()
             continue
         
-        # Show scenario menu
         while True:
             print_scenario_menu(category["name"], scenarios)
             
@@ -409,27 +497,21 @@ def interactive_mode(workspace: Path) -> Optional[Path]:
                 return None
             
             if scenario_choice == 0:
-                break  # Back to main menu
+                break
             
-            # Get selected scenario
             scenario_num, selected_scenario, description = scenarios[scenario_choice - 1]
             
-            # Show details
             print_scenario_details(scenario_num, selected_scenario, description)
             
-            # Detect and configure placeholders
             configured_scenario = detect_and_configure_placeholders(selected_scenario)
             
             if configured_scenario is None:
-                # User cancelled configuration
                 print(f"{Fore.YELLOW}Returning to menu...{Style.RESET_ALL}\n")
                 continue
             
-            # Confirm execution
             if confirm_execution(configured_scenario):
                 return configured_scenario
             else:
-                # Clean up temp file if it was created
                 if configured_scenario != selected_scenario and configured_scenario.exists():
                     configured_scenario.unlink()
                 continue

@@ -1,0 +1,24 @@
+scenario:
+  name: "MQTT Bridge"
+  description: "Connects MQTT broker to database, storing sensor data for analysis"
+  category: "benign"
+  
+  markers:
+    enabled: false
+
+runs:
+  - id: "mqtt_bridge"
+    type: "benign"
+    label: "MQTT_BRIDGE"
+    script: "../../scripts/benign/MQTT_Bridge.py"
+    
+    env:
+      # Required: Database host
+      DB_HOST: "192.168.1.20_PLACEHOLDER"  # Database server IP address
+      
+      # Optional: Can be customized if using different credentials/config
+      MQTT_BROKER: "localhost"
+      MQTT_TOPIC: "sensor/#"
+      DB_USER: "admin"
+      DB_PASSWORD: "your_password"
+      DB_NAME: "iot_db"
