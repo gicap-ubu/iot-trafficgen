@@ -9,7 +9,9 @@ description = "Reproducible IoT traffic generation framework for controlled labo
 readme = "README.md"
 requires-python = ">=3.10"
 license = {text = "MIT"}
-authors = [{name = "GICAP Research Group"}]
+authors = [
+    {name = "Branly Martínez", email = "bamgonzalez@ubu.es"}
+]
 keywords = ["iot", "cybersecurity", "traffic-generation", "reproducibility"]
 
 dependencies = [
