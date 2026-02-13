@@ -496,11 +496,11 @@ def save_scenario_metadata(
         ],
     }
     
-    metadata_dir = workspace / ".iottrafficgen"
-    metadata_dir.mkdir(parents=True, exist_ok=True)
+    runs_dir = workspace / "runs"
+    runs_dir.mkdir(parents=True, exist_ok=True)
     
     timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
-    metadata_file = metadata_dir / f"scenario_metadata_{timestamp}.json"
+    metadata_file = runs_dir / f"scenario_metadata_{timestamp}.json"
     with open(metadata_file, "w", encoding="utf-8") as f:
         json.dump(metadata, f, indent=2, ensure_ascii=False)
     
