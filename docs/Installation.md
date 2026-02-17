@@ -19,7 +19,7 @@ Complete installation instructions for `iottrafficgen` and the laboratory infras
 
 ```bash
 # Clone the repository
-git clone https://github.com/branly-martinez/iottrafficgen.git
+git clone https://github.com/gicap-ubu/iot-trafficgen.git
 cd iottrafficgen
 
 # Install the package (editable mode)
