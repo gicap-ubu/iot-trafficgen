@@ -35,7 +35,7 @@ See [docs/Installation.md](docs/Installation.md) for the full installation guide
 ## Installation
 
 ```bash
-git clone https://github.com/branly-martinez/iottrafficgen.git
+git clone https://github.com/gicap-ubu/iot-trafficgen.git
 cd iottrafficgen
 pip install -e .
 iottrafficgen --version
