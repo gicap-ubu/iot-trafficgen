@@ -68,15 +68,16 @@ fi
 # Check PHP endpoint
 if command -v curl &>/dev/null; then
     echo "[infrastructure] Testing web endpoint..."
-    
-    if curl -s http://localhost/index.php?id=1&batt=50 | grep -q "OK"; then
-        echo "[infrastructure] Web endpoint: OK"
+
+    WEB_URL="http://localhost/index.php?id=1&batt=50"
+
+    # Success criterion: HTTP endpoint reachable (2xx/3xx) and curl completes
+    if curl -fsS --max-time 3 "${WEB_URL}" >/dev/null; then
+        echo "[infrastructure] Web endpoint: OK (${WEB_URL})"
     else
-        echo "[infrastructure] Web endpoint: not responding or not configured"
-        echo "[infrastructure] Check /var/www/html/index.php"
+        echo "[infrastructure] Web endpoint: FAILED (${WEB_URL})"
+        echo "[infrastructure] Check Apache/PHP and /var/www/html/index.php"
     fi
 else
     echo "[infrastructure] curl not found, skipping web endpoint test"
 fi
-
-echo "[infrastructure] Infrastructure check completed"
