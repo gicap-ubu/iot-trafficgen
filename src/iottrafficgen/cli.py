@@ -24,7 +24,8 @@ def main():
     research and dataset creation.
     
     Features:
-      - 63 pre-configured attack scenarios across 7 categories
+      - 66 pre-configured scenarios across 8 categories
+      - 63 attack scenarios and 3 benign traffic scenarios
       - Interactive menu system for easy scenario selection
       - Automated ground-truth labeling with UDP markers
       - Comprehensive logging and error handling
@@ -36,7 +37,7 @@ def main():
       iottrafficgen run scenario.yaml      # Execute specific scenario
     
     For detailed documentation, visit:
-      https://github.com/yourusername/iot-trafficgen
+      https://github.com/gicap-ubu/iot-trafficgen
     """
     pass
 
@@ -79,7 +80,7 @@ def run(scenario: Path, workspace: Path, dry_run: bool, verbose: bool, quiet: bo
     \b
     Examples:
       iottrafficgen run
-        → Interactive mode: Browse and select from 63 scenarios
+        → Interactive mode: Browse and select from 66 scenarios
       
       iottrafficgen run scenarios/nmap/01.yaml
         → Execute specific NMAP reconnaissance scenario
@@ -161,16 +162,17 @@ def run(scenario: Path, workspace: Path, dry_run: bool, verbose: bool, quiet: bo
 )
 def list_scenarios(workspace: Path, category: str, count_only: bool):
     """
-    List all available IoT attack scenarios.
+    List all available iottrafficgen scenarios.
     
-    Displays organized catalog of 63 pre-configured attack scenarios
-    across 7 categories: NMAP, SSH Brute Force, SQL Injection,
-    Denial of Service, ARP Spoofing, MQTT Injection, and DNS Beaconing.
+    Displays an organized catalog of 66 pre-configured scenarios
+    across 8 categories: NMAP, SSH Brute Force, SQL Injection,
+    Denial of Service, ARP Spoofing, MQTT Injection, DNS Beaconing,
+    and Benign Traffic.
     
     \b
     Examples:
       iottrafficgen list
-        → Show all 63 scenarios organized by category
+        → Show all 66 scenarios organized by category
       
       iottrafficgen list --category nmap
         → Show only NMAP reconnaissance scenarios (30)
@@ -240,7 +242,7 @@ def list_scenarios(workspace: Path, category: str, count_only: bool):
     
     # Display header
     click.echo(f"\n{Fore.CYAN}{'=' * 70}{Style.RESET_ALL}")
-    click.echo(f"{Fore.CYAN}  Available Attack Scenarios{Style.RESET_ALL}")
+    click.echo(f"{Fore.CYAN}  Available Scenarios{Style.RESET_ALL}")
     click.echo(f"{Fore.CYAN}{'=' * 70}{Style.RESET_ALL}\n")
     
     total_count = 0

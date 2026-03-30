@@ -37,7 +37,7 @@ See [docs/Installation.md](docs/Installation.md) for the full installation guide
 ```bash
 git clone https://github.com/gicap-ubu/iot-trafficgen.git
 cd iottrafficgen
-pip install -e . // sudo pip3 install -e . --break-system-packages
+pip install -e .
 iottrafficgen --version
 ```
 
@@ -61,6 +61,8 @@ iottrafficgen run scenarios/nmap/01.yaml
 
 # Validate without executing
 iottrafficgen run scenarios/nmap/01.yaml --dry-run
+`--dry-run` validates configuration only: it does not execute scripts, create `runs/` outputs, write metadata, or send UDP markers.
+
 
 # List all available scenarios
 iottrafficgen list
@@ -160,12 +162,23 @@ Only target systems you own or have explicit authorization to test.
 
 | Document | Description |
 |----------|-------------|
-| [docs/installation.md](docs/installation.md) | Full installation guide and laboratory setup |
+| [docs/Installation.md](docs/Installation.md) | Full installation guide and laboratory setup |
 | [docs/examples.md](docs/examples.md) | Practical usage examples and dataset creation workflow |
-| [docs/contributing.md](docs/contributing.md) | How to add new scenarios, profiles, and scripts |
+| [docs/Contributing.md](docs/Contributing.md) | How to add new scenarios, profiles, and scripts |
 | [scenarios/README.md](scenarios/README.md) | Scenario YAML format and field reference |
 | [profiles/README.md](profiles/README.md) | Profile system and tool argument reference |
 | [scripts/README.md](scripts/README.md) | Backend script descriptions and environment variables |
+
+---
+
+## Citation and Versioning
+
+For publication and reuse, we recommend citing both:
+
+- the SoftwareX article describing `iottrafficgen`
+- the specific software release used in an experiment
+
+The repository includes a [CITATION.cff](CITATION.cff) file to support citation metadata and release-based citation workflows.
 
 ---
 

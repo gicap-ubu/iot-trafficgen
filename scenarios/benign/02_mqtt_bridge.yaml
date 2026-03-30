@@ -15,10 +15,10 @@ runs:
     env:
       # Required: Database host
       DB_HOST: "192.168.1.20_PLACEHOLDER"  # Database server IP address
-      
-      # Optional: Can be customized if using different credentials/config
+
+      # Optional: Defaults aligned with the documented lab setup
       MQTT_BROKER: "localhost"
-      MQTT_TOPIC: "sensor/#"
-      DB_USER: "admin"
-      DB_PASSWORD: "your_password"
+      MQTT_TOPIC: "planta/#"
+      DB_USER: "admin_iot"
+      DB_PASSWORD: "secreto"
       DB_NAME: "iot_db"

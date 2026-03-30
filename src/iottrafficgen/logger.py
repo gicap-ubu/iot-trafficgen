@@ -4,7 +4,6 @@ Logging system for iottrafficgen
 import logging
 import sys
 from pathlib import Path
-from datetime import datetime
 from typing import Optional
 
 # ANSI color codes
@@ -22,10 +21,13 @@ class ColoredFormatter(logging.Formatter):
     """Custom formatter with colors for console output."""
     
     def format(self, record):
-        levelname = record.levelname
-        if levelname in COLORS:
-            record.levelname = f"{COLORS[levelname]}{levelname}{COLORS['RESET']}"
-        return super().format(record)
+        original_levelname = record.levelname
+        if original_levelname in COLORS:
+            record.levelname = f"{COLORS[original_levelname]}{original_levelname}{COLORS['RESET']}"
+        try:
+            return super().format(record)
+        finally:
+            record.levelname = original_levelname
 
 
 def setup_logging(
@@ -68,8 +70,7 @@ def setup_logging(
     # File handler (if log_dir specified)
     if log_dir:
         log_dir.mkdir(parents=True, exist_ok=True)
-        timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
-        log_file = log_dir / f"execution_{timestamp}.log"
+        log_file = log_dir / "execution.log"
         
         file_handler = logging.FileHandler(log_file, encoding='utf-8')
         file_handler.setLevel(logging.DEBUG)  # Always DEBUG in file

@@ -7,6 +7,8 @@ from typing import List, Dict, Tuple, Optional
 import yaml
 from colorama import Fore, Style, init
 
+from . import __version__
+
 init(autoreset=True)
 
 BANNER = f"""{Fore.CYAN}  ═══════════════════════════════════════════════════════
@@ -18,7 +20,7 @@ BANNER = f"""{Fore.CYAN}  ══════════════════
    ╚═╝ ╚═════╝    ╚═╝       ╚═════╝     ╚═╝  ╚═╝   ╚═╝    ╚═════╝ 
    
       IoT Benign & Attack Traffic Generator (B_ATG)
-                     Version 0.1.0
+                     Version {__version__}
   ═══════════════════════════════════════════════════════{Style.RESET_ALL}
 """
 
@@ -68,7 +70,7 @@ CATEGORIES = {
     "8": {
         "name": "Benign Traffic",
         "path": "scenarios/benign",
-        "count": 1,
+        "count": 3,
         "description": "IoT baseline traffic generation"
     }
 }

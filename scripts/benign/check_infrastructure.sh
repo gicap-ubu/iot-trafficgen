@@ -51,7 +51,7 @@ if command -v mysql &>/dev/null; then
                 echo "[infrastructure] Records in 'sensores': ${COUNT}"
             else
                 echo "[infrastructure] Table 'sensores': not found"
-                echo "[infrastructure] Create with schema in docs/database_schema.sql"
+                echo "[infrastructure] Create the table using the SQL shown in docs/Installation.md"
             fi
         else
             echo "[infrastructure] Database '${DB_NAME}': not found"

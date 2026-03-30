@@ -133,9 +133,9 @@ FLUSH PRIVILEGES;
 sudo mysql iot_db -e "
 CREATE TABLE IF NOT EXISTS sensores (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    device_id VARCHAR(50),
-    topic VARCHAR(100),
-    payload TEXT,
+    device_id VARCHAR(50) NOT NULL,
+    topic VARCHAR(100) NOT NULL,
+    payload TEXT NOT NULL,
     timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 "

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 MQTT to SQL Bridge
-Subscribes to MQTT topics and writes data to MariaDB/MySQL database
+Subscribes to MQTT topics and stores incoming sensor messages in MariaDB/MySQL.
 
 Environment Variables:
     MQTT_BROKER: MQTT broker address (default: localhost)
@@ -66,30 +66,32 @@ stats = {
 }
 
 # ================= SQL WRITE FUNCTION (THREADED) =================
-def write_to_sql(sensor_data):
+def write_to_sql(sensor_data, topic, raw_payload):
     """
-    Write sensor data to remote database
-    Executed in separate thread to avoid blocking MQTT callback
+    Store sensor data in the database.
+    Executed in a separate thread to avoid blocking the MQTT callback.
     """
     try:
         sensor_id = sensor_data.get('id', 0)
-        data_val = sensor_data.get('v', 0.0)
-        
+
         if sensor_id == 0:
             return
 
         conn = mysql.connector.connect(**DB_CONFIG)
         cursor = conn.cursor()
 
-        sql = "UPDATE sensores SET valor = %s, fecha = NOW() WHERE id = %s"
-        cursor.execute(sql, (data_val, sensor_id))
+        sql = """
+            INSERT INTO sensores (device_id, topic, payload)
+            VALUES (%s, %s, %s)
+        """
+        cursor.execute(sql, (str(sensor_id), topic, raw_payload))
 
         conn.commit()
         cursor.close()
         conn.close()
 
         stats['written'] += 1
-        print(f"[mqtt_bridge] SQL OK: ID {sensor_id} = {data_val}")
+        print(f"[mqtt_bridge] SQL OK: stored message from device {sensor_id} on {topic}")
 
     except mysql.connector.Error as err:
         stats['errors'] += 1
@@ -119,7 +121,7 @@ def on_message(client, userdata, msg):
         print(f"[mqtt_bridge] Received ID {data.get('id', 'N/A')} on {msg.topic}")
 
         # Launch SQL write in separate thread to avoid blocking
-        t = threading.Thread(target=write_to_sql, args=(data,))
+        t = threading.Thread(target=write_to_sql, args=(data, msg.topic, payload))
         t.daemon = True
         t.start()
 

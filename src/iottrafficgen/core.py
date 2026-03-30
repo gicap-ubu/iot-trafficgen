@@ -114,6 +114,8 @@ def execute_run(
     workspace: Path,
     marker_system,
     dry_run: bool = False,
+    verbose: bool = False,
+    quiet: bool = False,
 ) -> RunResult:
     """
     Execute a single run with ground truth markers.
@@ -135,12 +137,12 @@ def execute_run(
     
     run_dir = workspace / "runs" / run_id_unique
     outputs_dir = run_dir / "outputs"
-    outputs_dir.mkdir(parents=True, exist_ok=True)
     
     from .logger import setup_logging
     if not dry_run:
+        outputs_dir.mkdir(parents=True, exist_ok=True)
         log_file = run_dir / "execution.log"
-        logger = setup_logging(log_dir=run_dir, verbose=True, quiet=False)
+        logger = setup_logging(log_dir=run_dir, verbose=verbose, quiet=quiet)
         logger.info(f"Logging to: {log_file}")
     
     env = run.env.copy()
@@ -161,7 +163,10 @@ def execute_run(
     
     click.echo(f"    → Script: {run.script}")
     click.echo(f"    → Run ID: {run_id_unique}")
-    click.echo(f"    → Output dir: {outputs_dir}")
+    if dry_run:
+        click.echo(f"    → Output dir (not created in dry run): {outputs_dir}")
+    else:
+        click.echo(f"    → Output dir: {outputs_dir}")
     
     if "TARGET_IP" in env:
         click.echo(f"    → Target: {env['TARGET_IP']}")
@@ -180,19 +185,23 @@ def execute_run(
         "label": run.label,
     }
     
-    logger.info(f"Sending {start_event} marker")
-    marker_system.send(
-        event=start_event,
-        attack_id=run_id_unique,
-        attack_name=run.label or run.id,
-        metadata=marker_metadata,
-    )
+    if not dry_run:
+        logger.info(f"Sending {start_event} marker")
+        marker_system.send(
+            event=start_event,
+            attack_id=run_id_unique,
+            attack_name=run.label or run.id,
+            metadata=marker_metadata,
+        )
+    else:
+        logger.info("[DRY RUN] Skipping start marker")
     
     start_time = datetime.utcnow()
     start_time_str = get_timestamp_utc()
     
     if dry_run:
         click.echo(f"    → [DRY RUN] Would execute: {run.script}")
+        click.echo("    → [DRY RUN] No files, metadata, or markers will be created")
         logger.info("[DRY RUN] Skipping execution")
         returncode = 0
         stdout = "[dry run - no output]"
@@ -368,13 +377,16 @@ def execute_run(
         "duration_s": duration,
     })
     
-    logger.info(f"Sending {end_event} marker")
-    marker_system.send(
-        event=end_event,
-        attack_id=run_id_unique,
-        attack_name=run.label or run.id,
-        metadata=marker_metadata,
-    )
+    if not dry_run:
+        logger.info(f"Sending {end_event} marker")
+        marker_system.send(
+            event=end_event,
+            attack_id=run_id_unique,
+            attack_name=run.label or run.id,
+            metadata=marker_metadata,
+        )
+    else:
+        logger.info("[DRY RUN] Skipping end marker")
     
     result_obj = RunResult(
         run_id=run_id_unique,
@@ -388,7 +400,8 @@ def execute_run(
         outputs_dir=outputs_dir,
     )
     
-    save_run_metadata(run, result_obj, run_dir)
+    if not dry_run:
+        save_run_metadata(run, result_obj, run_dir)
     
     return result_obj
 
@@ -558,7 +571,14 @@ def run_scenario(
             click.echo(f"[{i}/{len(scenario.runs)}] Run: {run.id} ({run.run_type})")
             logger.info(f"Starting run {i}/{len(scenario.runs)}: {run.id}")
             
-            result = execute_run(run, workspace, marker_system, dry_run)
+            result = execute_run(
+                run,
+                workspace,
+                marker_system,
+                dry_run=dry_run,
+                verbose=verbose,
+                quiet=quiet,
+            )
             results.append(result)
             
             if result.returncode == 0:

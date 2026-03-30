@@ -101,6 +101,9 @@ Dry run checks:
 - Script file existence
 - Profile file existence
 - Placeholder detection
+- No scripts are executed
+- No `runs/` directories or metadata files are created
+- No UDP ground-truth markers are sent
 
 ---
 
