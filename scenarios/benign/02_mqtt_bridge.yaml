@@ -19,6 +19,6 @@ runs:
       # Optional: Defaults aligned with the documented lab setup
       MQTT_BROKER: "localhost"
       MQTT_TOPIC: "planta/#"
-      DB_USER: "admin_iot"
-      DB_PASSWORD: "secreto"
+      DB_USER: "admin_iot_PLACEHOLDER"
+      DB_PASSWORD: "secreto_PLACEHOLDER"
       DB_NAME: "iot_db"

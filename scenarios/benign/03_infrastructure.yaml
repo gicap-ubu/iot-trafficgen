@@ -13,8 +13,8 @@ runs:
     script: "../../scripts/benign/check_infrastructure.sh"
     
     env:
-      # These values work with the default lab setup
-      # Users can customize by editing this file directly
-      DB_USER: "admin"
-      DB_PASSWORD: "your_password"
+      # Default values correspond to the reference lab setup in docs/Installation.md
+      # Users may replace them with their own database credentials
+      DB_USER: "admin_iot_PLACEHOLDER"
+      DB_PASSWORD: "secreto_PLACEHOLDER"
       DB_NAME: "iot_db"

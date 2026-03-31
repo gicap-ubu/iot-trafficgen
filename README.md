@@ -61,12 +61,12 @@ iottrafficgen run scenarios/nmap/01.yaml
 
 # Validate without executing
 iottrafficgen run scenarios/nmap/01.yaml --dry-run
-`--dry-run` validates configuration only: it does not execute scripts, create `runs/` outputs, write metadata, or send UDP markers.
-
 
 # List all available scenarios
 iottrafficgen list
 ```
+
+`--dry-run` validates configuration only: it does not execute scripts, create `runs/` outputs, write metadata, or send UDP markers.
 
 ### Programmatic API
 
@@ -184,5 +184,5 @@ The repository includes a [CITATION.cff](CITATION.cff) file to support citation 
 
 ## License
 
-MIT License — see [LICENSE](LICENSE) for details.  
+MIT License — see [LICENSE](LICENSE) or [LICENSE.txt](LICENSE.txt) for details.  
 Copyright (c) 2026 Branly Martínez, Grupo de Investigación de Inteligencia Artificial Aplicada, Universidad de Burgos, Spain.

@@ -70,7 +70,7 @@ class PlaceholderNotConfiguredError(IoTTrafficGenError):
         placeholder_list = "\n     ".join(placeholders)
         super().__init__(
             f"Scenario contains unconfigured placeholders:\n     {placeholder_list}",
-            f"Edit {scenario} and replace placeholder values with your configuration."
+            "Replace placeholder values in the scenario YAML or run `iottrafficgen run` in interactive mode."
         )
 
 

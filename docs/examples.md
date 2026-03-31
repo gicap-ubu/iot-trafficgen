@@ -133,17 +133,16 @@ iottrafficgen run scenarios/nmap/01.yaml --workspace /data/experiment_01
 ```
 
 Output structure:
-```
+
+```text
 /data/experiment_01/
-├── runs/
-│   └── nmap_01_20260209_143022/
-│       ├── run_metadata.json
-│       ├── execution.log
-│       └── outputs/
-└── .iottrafficgen/
+└── runs/
+    ├── nmap_01_20260209_143022/
+    │   ├── run_metadata.json
+    │   ├── execution.log
+    │   └── outputs/
     └── scenario_metadata_20260209_143022.json
 ```
-
 ---
 
 ## 6. Logging Levels

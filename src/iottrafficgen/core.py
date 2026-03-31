@@ -588,10 +588,16 @@ def run_scenario(
                 click.secho(f"    [FAILED] Exit code {result.returncode}\n", fg="red")
                 logger.error(f"Run failed with exit code {result.returncode}")
         
+        failed_results = [r for r in results if r.returncode != 0]
+
         if not dry_run:
             save_scenario_metadata(scenario, results, workspace)
-        
-        logger.info("Scenario execution completed")
+
+        if failed_results:
+            logger.error(f"Scenario completed with {len(failed_results)} failed run(s)")
+            raise SystemExit(1)
+
+        logger.info("Execution completed")
     
     except IoTTrafficGenError as e:
         logger.error(f"Error: {e.message}")

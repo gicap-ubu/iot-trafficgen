@@ -7,7 +7,7 @@ from colorama import Fore, Style, init
 
 from . import __version__
 from .core import run_scenario
-from .interactive import interactive_mode
+from .interactive import interactive_mode, detect_and_configure_placeholders
 
 # Initialize colorama
 init(autoreset=True)
@@ -104,6 +104,8 @@ def run(scenario: Path, workspace: Path, dry_run: bool, verbose: bool, quiet: bo
         ├── run_metadata.json   # Structured metadata
         └── outputs/            # Attack-specific outputs
     """
+    original_scenario = scenario
+
     try:
         # If no scenario provided, enter interactive mode
         if scenario is None:
@@ -114,6 +116,12 @@ def run(scenario: Path, workspace: Path, dry_run: bool, verbose: bool, quiet: bo
                 sys.exit(0)
             
             scenario = selected_scenario
+        else:
+            configured_scenario = detect_and_configure_placeholders(scenario)
+            if configured_scenario is None:
+                click.secho("[ERROR] Scenario configuration was cancelled", fg="red", err=True)
+                sys.exit(1)
+            scenario = configured_scenario
         
         click.echo(f"\nLoading scenario: {scenario}")
         click.echo(f"Workspace: {workspace}")
@@ -141,6 +149,11 @@ def run(scenario: Path, workspace: Path, dry_run: bool, verbose: bool, quiet: bo
     except Exception as e:
         click.secho(f"[ERROR] Unexpected error: {e}", fg="red", err=True)
         sys.exit(1)
+    finally:
+        if scenario is not None and scenario.exists():
+            is_temp_configured_scenario = scenario.name.startswith("iottrafficgen_")
+            if is_temp_configured_scenario:
+                scenario.unlink()
 
 
 @main.command(name='list')
