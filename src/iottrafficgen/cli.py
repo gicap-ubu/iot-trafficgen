@@ -104,7 +104,6 @@ def run(scenario: Path, workspace: Path, dry_run: bool, verbose: bool, quiet: bo
         ├── run_metadata.json   # Structured metadata
         └── outputs/            # Attack-specific outputs
     """
-    original_scenario = scenario
 
     try:
         # If no scenario provided, enter interactive mode
